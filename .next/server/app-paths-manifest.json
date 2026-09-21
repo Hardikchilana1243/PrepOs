@@ -1,0 +1,8 @@
+{
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/companies/page": "app/dashboard/companies/page.js",
+  "/dashboard/core-cs/page": "app/dashboard/core-cs/page.js",
+  "/dashboard/revision/page": "app/dashboard/revision/page.js",
+  "/dashboard/dsa/page": "app/dashboard/dsa/page.js",
+  "/dashboard/profile/page": "app/dashboard/profile/page.js"
+}

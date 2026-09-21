@@ -29,14 +29,20 @@ interface ProfileEditorProps {
 export function ProfileEditor({ profile, history }: ProfileEditorProps) {
   const [isPending, startTransition] = useTransition();
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setSaveError(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      await updateProfileAction(formData);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      const res = await updateProfileAction(formData);
+      if (res.success) {
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        setSaveError(res.error || 'Failed to save changes.');
+      }
     });
   };
 
@@ -95,6 +101,7 @@ export function ProfileEditor({ profile, history }: ProfileEditorProps) {
                   <option value={2025}>2025 (Final Year)</option>
                   <option value={2026}>2026 (Pre-Final Year)</option>
                   <option value={2027}>2027 (Sophomore)</option>
+                  <option value={2028}>2028 (Freshman)</option>
                 </select>
               </div>
 
@@ -105,10 +112,9 @@ export function ProfileEditor({ profile, history }: ProfileEditorProps) {
                   defaultValue={profile.targetRoleTier}
                   className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500"
                 >
-                  <option value="TIER_1_PRODUCT">Tier-1 Product & Tech</option>
-                  <option value="UNICORN_STARTUP">High-Growth Unicorn</option>
-                  <option value="ENTERPRISE_SYSTEMS">Enterprise Systems</option>
-                  <option value="CORE_IT">High-Impact IT</option>
+                  <option value="PRODUCT_TIER_1">Tier-1 Product & Tech Giants</option>
+                  <option value="TECH_TIER_2">Tier-2 High-Growth Tech & Fintech</option>
+                  <option value="SERVICE_TIER_3">Tier-3 IT Services & Drives</option>
                 </select>
               </div>
             </div>
@@ -121,9 +127,10 @@ export function ProfileEditor({ profile, history }: ProfileEditorProps) {
                   defaultValue={profile.preferredLang}
                   className="w-full px-3 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:outline-none focus:border-blue-500"
                 >
-                  <option value="C++">C++ (Standard)</option>
-                  <option value="Java">Java (Collections)</option>
-                  <option value="Python">Python (Standard)</option>
+                  <option value="CPP">C++ (Standard)</option>
+                  <option value="JAVA">Java (Collections)</option>
+                  <option value="PYTHON">Python (Standard)</option>
+                  <option value="JAVASCRIPT">JavaScript (Node/V8)</option>
                 </select>
               </div>
 
@@ -137,6 +144,12 @@ export function ProfileEditor({ profile, history }: ProfileEditorProps) {
               </div>
             </div>
 
+            {saveError && (
+              <div className="p-2.5 rounded-lg bg-rose-950/40 border border-rose-800/40 text-xs text-rose-300">
+                {saveError}
+              </div>
+            )}
+
             <div className="pt-2 flex items-center justify-between">
               {saveSuccess ? (
                 <span className="text-xs text-emerald-400 flex items-center gap-1.5 font-medium">
@@ -145,6 +158,7 @@ export function ProfileEditor({ profile, history }: ProfileEditorProps) {
               ) : (
                 <span />
               )}
+
 
               <button
                 type="submit"

@@ -23,7 +23,7 @@ export function TodayMissionCard({ missions, onToggleMission }: TodayMissionCard
   };
 
   return (
-    <div className="rounded-2xl bg-[#0F172A] border border-slate-800/90 p-5 md:p-6 shadow-xl">
+    <div id="todays-mission" className="rounded-2xl bg-[#0F172A] border border-slate-800/90 p-5 md:p-6 shadow-xl scroll-mt-20">
       <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-lg bg-blue-600/10 text-blue-400 border border-blue-500/20">

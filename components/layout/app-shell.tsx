@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -18,6 +18,8 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 
+import { CommandPalette } from './command-palette';
+
 interface AppShellProps {
   children: React.ReactNode;
   user: {
@@ -30,6 +32,19 @@ interface AppShellProps {
 export function AppShell({ children, user, onSignOut }: AppShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Global keyboard shortcut: ⌘K / Ctrl+K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -42,6 +57,8 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-[#070A10] text-slate-100 flex flex-col font-sans">
+      <CommandPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+
       {/* Top Application Bar */}
       <header className="h-16 border-b border-slate-800 bg-[#0F172A]/80 backdrop-blur-md sticky top-0 z-40 px-4 md:px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -69,7 +86,7 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
         {/* Global Quick Search Trigger (⌘K Shell) */}
         <div className="hidden sm:flex items-center">
           <button
-            onClick={() => alert('Global Search: Database indexed queries across 20 DSA Problems, 10 Companies, and Core CS Quizzes.')}
+            onClick={() => setSearchOpen(true)}
             className="flex items-center gap-3 px-3.5 py-1.5 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-400 text-sm hover:border-slate-700 hover:text-slate-200 transition-colors shadow-inner"
           >
             <Search className="w-4 h-4 text-slate-500" />
@@ -79,6 +96,7 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
             </kbd>
           </button>
         </div>
+
 
         {/* User Status & Sign Out */}
         <div className="flex items-center gap-3">

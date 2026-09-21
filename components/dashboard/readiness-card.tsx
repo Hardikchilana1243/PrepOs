@@ -54,12 +54,22 @@ export function ReadinessCard({ readiness }: ReadinessCardProps) {
 
       {/* Baseline Zero-State Note */}
       {isBaselineOnly && (
-        <div className="my-4 p-3 rounded-xl bg-cyan-950/30 border border-cyan-800/40 text-xs text-cyan-200 flex items-start gap-2.5">
-          <Activity className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
-          <div>
-            <span className="font-semibold text-cyan-300">Baseline Diagnostic Established: </span>
-            You are currently at the initial placement baseline (20%). Complete Today&apos;s Mission to begin scaling your readiness.
+        <div className="my-4 p-4 rounded-xl bg-cyan-950/40 border border-cyan-800/40 text-xs text-cyan-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <Activity className="w-5 h-5 text-cyan-400 mt-0.5 shrink-0" />
+            <div>
+              <div className="font-semibold text-cyan-300 text-sm">You&apos;re starting from here.</div>
+              <p className="text-xs text-cyan-200/80 mt-0.5">
+                Complete your first mission below to calibrate your active score above the initial 20% baseline.
+              </p>
+            </div>
           </div>
+          <a
+            href="#todays-mission"
+            className="px-3.5 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-semibold whitespace-nowrap self-start sm:self-auto transition-colors"
+          >
+            Start Today&apos;s Mission
+          </a>
         </div>
       )}
 

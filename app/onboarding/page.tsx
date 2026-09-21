@@ -44,7 +44,7 @@ export default function OnboardingPage() {
     setIsSubmitting(true);
 
     try {
-      await completeOnboardingAction({
+      const res = await completeOnboardingAction({
         gradYear,
         targetDegree,
         targetRoleTier,
@@ -55,6 +55,13 @@ export default function OnboardingPage() {
           osAnswer,
         },
       });
+
+      if (res.success) {
+        window.location.href = '/dashboard';
+      } else {
+        setError(res.error || 'Failed to submit profile.');
+        setIsSubmitting(false);
+      }
     } catch (err: any) {
       setError(err?.message || 'Failed to submit profile.');
       setIsSubmitting(false);
