@@ -1,0 +1,44 @@
+{
+  "name": "prepos-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "prisma:format": "prisma format --schema=prisma/schema.prisma",
+    "prisma:validate": "prisma validate --schema=prisma/schema.prisma",
+    "prisma:generate": "prisma generate --schema=prisma/schema.prisma",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:verify": "tsx prisma/verify-counts.ts",
+    "db:push:local": "prisma db push --schema=prisma/schema.sqlite.prisma"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.10.2",
+    "@types/bcryptjs": "^2.4.6",
+    "autoprefixer": "^10.4.19",
+    "bcryptjs": "^2.4.3",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.344.0",
+    "next": "^14.2.24",
+    "postcss": "^8.4.38",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwind-merge": "^2.3.0",
+    "tailwindcss": "^3.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.2.1",
+    "prisma": "^5.10.2",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.1.6"
+  }
+}
