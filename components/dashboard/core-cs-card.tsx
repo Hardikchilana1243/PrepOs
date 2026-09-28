@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { Cpu, ArrowUpRight, CheckCircle2 } from 'lucide-react';
+import { Cpu, ArrowRight } from 'lucide-react';
+import { ProgressBar } from '@/components/ui/student-os';
 
 interface CoreCSCardProps {
   coreCsProgress: {
@@ -17,66 +18,70 @@ interface CoreCSCardProps {
 
 export function CoreCSCard({ coreCsProgress }: CoreCSCardProps) {
   const { totalQuizzes, attemptedCount, averageScore, nextQuiz } = coreCsProgress;
+  const progressPct = totalQuizzes > 0 ? Math.round((attemptedCount / totalQuizzes) * 100) : 0;
 
   return (
-    <div className="rounded-2xl bg-[#0F172A] border border-slate-800/80 p-5 flex flex-col justify-between shadow-xl">
+    <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm flex flex-col justify-between">
       <div>
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Cpu className="w-4 h-4 text-cyan-400" />
-            <span>Core CS Drills</span>
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <Cpu className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
+              Core CS Drills
+            </h3>
           </div>
-          <Link
-            href="/dashboard/core-cs"
-            className="text-xs font-medium text-cyan-400 hover:text-cyan-300 inline-flex items-center gap-1"
-          >
-            All Quizzes <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
+          <span className="text-xs font-semibold text-slate-700 font-mono">
+            {attemptedCount} / {totalQuizzes}
+          </span>
         </div>
 
-        <div className="mt-4 flex items-baseline justify-between">
-          <div className="text-2xl font-black font-mono text-white">
-            {attemptedCount} <span className="text-sm font-normal text-slate-500">/ {totalQuizzes} Quizzes</span>
+        {/* Progress Bar */}
+        <div className="mt-3">
+          <div className="flex justify-between text-xs text-slate-500 mb-1.5">
+            <span>Quizzes Completed</span>
+            <span className="font-semibold text-slate-800">{progressPct}%</span>
           </div>
-          <div className="text-xs font-mono font-bold text-cyan-400">
-            {averageScore > 0 ? `${averageScore}% Avg` : 'No attempts'}
-          </div>
+          <ProgressBar value={progressPct} size="md" color="indigo" />
         </div>
 
-        <div className="w-full bg-slate-800 rounded-full h-2 mt-2 overflow-hidden">
-          <div
-            className="bg-cyan-400 h-full rounded-full transition-all duration-500"
-            style={{ width: `${Math.max(attemptedCount > 0 ? 10 : 0, (attemptedCount / totalQuizzes) * 100)}%` }}
-          />
+        {/* Next Recommendation */}
+        <div className="mt-4 pt-3 border-t border-slate-100">
+          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            Next Diagnostic Drill
+          </div>
+          {nextQuiz ? (
+            <Link
+              href={`/dashboard/core-cs?quiz=${nextQuiz.slug}`}
+              className="group block p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold text-slate-800 group-hover:text-indigo-700 truncate">
+                  {nextQuiz.title}
+                </span>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600 shrink-0">
+                  {nextQuiz.subjectTitle}
+                </span>
+              </div>
+            </Link>
+          ) : (
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+              No pending drills
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Next Action Box */}
-      <div className="mt-5 pt-3 border-t border-slate-800/80">
-        <div className="text-[11px] font-mono uppercase text-slate-500 font-semibold mb-1">
-          Next Screening Drill
-        </div>
-        {nextQuiz ? (
-          <Link
-            href={`/dashboard/core-cs?quiz=${nextQuiz.slug}`}
-            className="group flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 hover:border-slate-700 transition-colors"
-          >
-            <div className="truncate pr-2">
-              <div className="text-xs font-semibold text-slate-200 group-hover:text-cyan-400 transition-colors truncate">
-                {nextQuiz.title}
-              </div>
-              <div className="text-[10px] font-mono text-slate-500">
-                {nextQuiz.subjectTitle}
-              </div>
-            </div>
-            <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-cyan-400 shrink-0" />
-          </Link>
-        ) : (
-          <div className="text-xs text-emerald-400 flex items-center gap-1.5 p-2 rounded-lg bg-emerald-950/20 border border-emerald-800/30">
-            <CheckCircle2 className="w-4 h-4 shrink-0" />
-            <span>All Core CS diagnostic drills completed.</span>
-          </div>
-        )}
+      <div className="mt-4 pt-3 border-t border-slate-100">
+        <Link
+          href="/dashboard/core-cs"
+          className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center justify-between group"
+        >
+          <span>All Core CS Quizzes</span>
+          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
       </div>
     </div>
   );

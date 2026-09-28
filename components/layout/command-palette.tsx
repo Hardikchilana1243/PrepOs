@@ -36,11 +36,11 @@ const SEARCH_ITEMS: SearchItem[] = [
   { id: 'nav-revision', title: 'Revision Queue', category: 'Navigation', url: '/dashboard/revision', hint: 'SuperMemo Spaced Repetition' },
   { id: 'nav-profile', title: 'Candidate Profile & PRS Audit', category: 'Navigation', url: '/dashboard/profile', hint: 'Target Role & Preferences' },
   // Problems
-  { id: 'prob-1', title: 'Array Element Frequency Counter', category: 'DSA Problem', url: '/dashboard/dsa?problem=array-element-frequency-counter', hint: 'HashMap • Easy' },
-  { id: 'prob-2', title: 'Two Sum Target Pair Indices', category: 'DSA Problem', url: '/dashboard/dsa?problem=two-sum-target-pair', hint: 'Two Pointers • Easy' },
-  { id: 'prob-3', title: 'Longest Substring Without Repeating Characters', category: 'DSA Problem', url: '/dashboard/dsa?problem=longest-substring-without-repeating', hint: 'Sliding Window • Medium' },
-  { id: 'prob-4', title: 'Reverse Singly Linked List', category: 'DSA Problem', url: '/dashboard/dsa?problem=reverse-singly-linked-list', hint: 'Pointers • Easy' },
-  { id: 'prob-5', title: 'Binary Search Sorted Array', category: 'DSA Problem', url: '/dashboard/dsa?problem=binary-search-sorted-array', hint: 'Binary Search • Easy' },
+  { id: 'prob-1', title: 'Array Element Frequency Counter', category: 'DSA Problem', url: '/dashboard/dsa/problem/array-element-frequency-counter', hint: 'HashMap • Easy' },
+  { id: 'prob-2', title: 'Two Sum in Sorted Sequence', category: 'DSA Problem', url: '/dashboard/dsa/problem/two-sum-target-search', hint: 'Two Pointers • Easy' },
+  { id: 'prob-3', title: 'Maximum Subarray Running Sum', category: 'DSA Problem', url: '/dashboard/dsa/problem/max-subarray-sum-range', hint: 'Kadane • Easy' },
+  { id: 'prob-4', title: 'Reverse Singly Linked List', category: 'DSA Problem', url: '/dashboard/dsa/problem/reverse-singly-chain', hint: 'Pointers • Easy' },
+  { id: 'prob-5', title: 'Search in Rotated Sorted Array', category: 'DSA Problem', url: '/dashboard/dsa/problem/search-in-rotated-range', hint: 'Binary Search • Medium' },
   // Companies
   { id: 'comp-amzn', title: 'Amazon Placement Hub', category: 'Company Hub', url: '/dashboard/companies?company=amazon', hint: 'Sliding Window, Trees' },
   { id: 'comp-msft', title: 'Microsoft Placement Hub', category: 'Company Hub', url: '/dashboard/companies?company=microsoft', hint: 'Strings, Linked Lists' },
@@ -87,25 +87,28 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-start justify-center pt-20 px-4">
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-start justify-center pt-20 px-4"
+      onClick={onClose}
+    >
       <div
-        className="w-full max-w-xl rounded-2xl bg-[#0F172A] border border-slate-700/80 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-xl rounded-2xl bg-white border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input Bar */}
-        <div className="p-4 border-b border-slate-800 flex items-center gap-3">
-          <Search className="w-5 h-5 text-cyan-400 shrink-0" />
+        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+          <Search className="w-5 h-5 text-blue-600 shrink-0" />
           <input
             autoFocus
             type="text"
             placeholder="Type a problem, topic, company, or command..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full bg-transparent text-sm text-slate-100 placeholder-slate-500 outline-none"
+            className="w-full bg-transparent text-sm text-slate-900 placeholder-slate-400 outline-none"
           />
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -122,10 +125,10 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               <button
                 key={item.id}
                 onClick={() => handleSelect(item.url)}
-                className="w-full p-3 rounded-xl hover:bg-slate-800/80 transition-all flex items-center justify-between text-left group"
+                className="w-full p-3 rounded-xl hover:bg-slate-50 transition-all flex items-center justify-between text-left group"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 group-hover:text-cyan-400 transition-colors">
+                  <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 text-slate-500 group-hover:text-blue-600 group-hover:border-blue-100 group-hover:bg-blue-50 transition-colors">
                     {item.category === 'DSA Problem' ? (
                       <Code2 className="w-4 h-4" />
                     ) : item.category === 'Company Hub' ? (
@@ -137,20 +140,20 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                     )}
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-slate-200 group-hover:text-white">
+                    <div className="text-xs font-semibold text-slate-900 group-hover:text-blue-600">
                       {item.title}
                     </div>
                     {item.hint && (
-                      <div className="text-[11px] text-slate-400 mt-0.5">{item.hint}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{item.hint}</div>
                     )}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                     {item.category}
                   </span>
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors" />
+                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
                 </div>
               </button>
             ))
@@ -158,7 +161,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         </div>
 
         {/* Modal Footer */}
-        <div className="p-3 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between text-[11px] font-mono text-slate-500">
+        <div className="p-3 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-[11px] text-slate-500">
           <span>Navigate with click or arrow keys</span>
           <span>ESC to close</span>
         </div>

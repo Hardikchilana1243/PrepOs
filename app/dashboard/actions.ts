@@ -7,6 +7,7 @@ import { toggleMissionCompletion } from '@/lib/services/daily-mission';
 import {
   recordProblemSolved,
   submitQuizAttempt,
+  getQuizAttemptReview,
   recordRevisionReview,
   QuizSubmissionResult,
 } from '@/lib/services/progress';
@@ -50,6 +51,17 @@ export async function submitQuizAction(
   revalidatePath('/dashboard/core-cs');
 
   return result;
+}
+
+export async function getQuizAttemptReviewAction(
+  attemptId: string
+): Promise<QuizSubmissionResult | null> {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  return getQuizAttemptReview(user.id, attemptId);
 }
 
 export async function recordRevisionReviewAction(
@@ -113,5 +125,92 @@ export async function updateProfileAction(formData: FormData): Promise<{ success
     console.error('Failed to update profile:', err);
     return { success: false, error: 'Failed to update profile.' };
   }
+}
+
+import {
+  runProblemCode,
+  submitProblemCode,
+  getUserProblemSubmissions,
+  SupportedLanguage,
+  RunCodeResponse,
+  SubmitCodeResponse,
+} from '@/lib/services/code-execution';
+
+export async function runProblemCodeAction(
+  problemId: string,
+  language: SupportedLanguage,
+  code: string
+): Promise<RunCodeResponse> {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  return runProblemCode(user.id, problemId, language, code);
+}
+
+export async function submitProblemCodeAction(
+  problemId: string,
+  language: SupportedLanguage,
+  code: string
+): Promise<SubmitCodeResponse> {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  const result = await submitProblemCode(user.id, problemId, language, code);
+
+  if (result.isSolved) {
+    revalidatePath('/dashboard');
+    revalidatePath('/dashboard/dsa');
+    revalidatePath('/dashboard/revision');
+  }
+
+  return result;
+}
+
+export async function toggleBookmarkAction(
+  problemId: string
+): Promise<{ success: boolean; isBookmarked: boolean }> {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  const existing = await prisma.bookmark.findUnique({
+    where: {
+      userId_problemId: {
+        userId: user.id,
+        problemId,
+      },
+    },
+  });
+
+  if (existing) {
+    await prisma.bookmark.delete({
+      where: { id: existing.id },
+    });
+    revalidatePath('/dashboard/dsa');
+    return { success: true, isBookmarked: false };
+  } else {
+    await prisma.bookmark.create({
+      data: {
+        userId: user.id,
+        problemId,
+      },
+    });
+    revalidatePath('/dashboard/dsa');
+    return { success: true, isBookmarked: true };
+  }
+}
+
+export async function getUserSubmissionsAction(problemId: string) {
+  const user = await getSessionUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  return getUserProblemSubmissions(user.id, problemId);
 }
 

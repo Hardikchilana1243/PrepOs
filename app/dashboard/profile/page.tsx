@@ -4,6 +4,7 @@ import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { getReadinessScore } from '@/lib/services/readiness-score';
 import { ProfileEditor } from '@/components/profile/profile-editor';
+import { PageHeader } from '@/components/ui/student-os';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,32 +15,39 @@ export default async function ProfilePage() {
     redirect('/auth/sign-in');
   }
 
-  const [dbUser, readiness, history] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: user.id },
-      include: { profile: true },
+  if (!user.profile) {
+    redirect('/onboarding');
+  }
+
+  const [readiness, history] = await Promise.all([
+    getReadinessScore(user.id, {
+      streakDays: user.profile.streakDays,
     }),
-    getReadinessScore(user.id),
     prisma.readinessScoreHistory.findMany({
       where: { userId: user.id },
       orderBy: { recordedAt: 'desc' },
       take: 15,
+      select: {
+        id: true,
+        score: true,
+        recordedAt: true,
+      },
     }),
   ]);
 
-  if (!dbUser || !dbUser.profile) {
-    redirect('/onboarding');
-  }
-
   const profileData = {
-    name: dbUser.name || 'Candidate',
-    email: dbUser.email,
-    gradYear: dbUser.profile.gradYear,
-    targetDegree: dbUser.profile.targetDegree,
-    targetRoleTier: dbUser.profile.targetRoleTier,
-    preferredLang: dbUser.profile.preferredLang,
-    streakDays: dbUser.profile.streakDays,
+    name: user.name || 'Candidate',
+    email: user.email,
+    gradYear: user.profile.gradYear,
+    targetDegree: user.profile.targetDegree,
+    targetRoleTier: user.profile.targetRoleTier,
+    preferredLang: user.profile.preferredLang,
+    streakDays: user.profile.streakDays,
     prsScore: readiness.totalScore,
+    dsaScore: readiness.dsaScore,
+    coreCsScore: readiness.coreCsScore,
+    oaScore: readiness.oaScore,
+    consistencyScore: readiness.consistencyScore,
   };
 
   const formattedHistory = history.map((h) => ({
@@ -55,14 +63,11 @@ export default async function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      <div className="pb-2 border-b border-slate-800">
-        <h1 className="text-2xl font-bold text-white tracking-tight">
-          Candidate Profile & PRS Metrics
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Manage your graduation timeline, primary coding language, target recruiter tiers, and examine server-evaluated score records.
-        </p>
-      </div>
+      <PageHeader
+        title="Candidate Profile & Readiness Metrics"
+        subtitle="Manage your graduation timeline, primary language, and review your verified server-side placement readiness score."
+        tag="Level 4 — Analytics & Profile"
+      />
 
       <ProfileEditor profile={profileData} history={formattedHistory} />
     </div>

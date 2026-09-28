@@ -17,6 +17,11 @@ export interface PRSComponents {
 
 const TOTAL_SEEDED_PROBLEMS = 20;
 
+export interface ReadinessScoreOptions {
+  streakDays?: number;
+  isBaselineOnly?: boolean;
+}
+
 /**
  * Calculates and persists the Placement Readiness Score (PRS v1) for a user.
  * Derived solely from verified database activity:
@@ -27,7 +32,10 @@ const TOTAL_SEEDED_PROBLEMS = 20;
  */
 export async function calculatePRS(userId: string): Promise<PRSComponents> {
   const [profile, solvedCount, quizAttempts, oaAttempts] = await Promise.all([
-    prisma.profile.findUnique({ where: { userId } }),
+    prisma.profile.findUnique({
+      where: { userId },
+      select: { streakDays: true },
+    }),
     prisma.userProgress.count({
       where: {
         userId,
@@ -72,11 +80,8 @@ export async function calculatePRS(userId: string): Promise<PRSComponents> {
 
   let totalScore: number;
   if (isBaselineOnly) {
-    // Initial established baseline score for a newly onboarded student
     totalScore = 20;
   } else {
-    // Standard PRS v1 Weighted Formula:
-    // DSA 40% + Core CS 30% + OA 15% + Consistency 15%
     const weighted =
       dsaScore * 0.40 +
       coreCsScore * 0.30 +
@@ -104,13 +109,20 @@ export async function calculatePRS(userId: string): Promise<PRSComponents> {
     },
   });
 
-  // Persist history entry
-  await prisma.readinessScoreHistory.create({
-    data: {
-      userId,
-      score: totalScore,
-    },
+  // Persist history entry only when score changes
+  const latestHistory = await prisma.readinessScoreHistory.findFirst({
+    where: { userId },
+    orderBy: { recordedAt: 'desc' },
   });
+
+  if (!latestHistory || latestHistory.score !== totalScore) {
+    await prisma.readinessScoreHistory.create({
+      data: {
+        userId,
+        score: totalScore,
+      },
+    });
+  }
 
   return {
     totalScore,
@@ -125,8 +137,12 @@ export async function calculatePRS(userId: string): Promise<PRSComponents> {
 
 /**
  * Retrieves the current ReadinessScore or calculates it if missing.
+ * Accepts optional pre-fetched profile and activity counts to eliminate redundant DB round-trips.
  */
-export async function getReadinessScore(userId: string): Promise<PRSComponents> {
+export async function getReadinessScore(
+  userId: string,
+  options?: ReadinessScoreOptions
+): Promise<PRSComponents> {
   const existing = await prisma.readinessScore.findUnique({
     where: { userId },
   });
@@ -135,15 +151,20 @@ export async function getReadinessScore(userId: string): Promise<PRSComponents> 
     return calculatePRS(userId);
   }
 
-  const [solvedCount, quizCount, profile] = await Promise.all([
-    prisma.userProgress.count({ where: { userId, isSolved: true } }),
-    prisma.quizAttempt.count({ where: { userId } }),
-    prisma.profile.findUnique({ where: { userId } }),
-  ]);
+  let streakDays = options?.streakDays;
+  if (streakDays === undefined) {
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+      select: { streakDays: true },
+    });
+    streakDays = profile?.streakDays ?? 0;
+  }
 
-  const streakDays = profile?.streakDays ?? 0;
   const consistencyScore = Math.min(100, Math.round((streakDays / 14) * 100));
-  const isBaselineOnly = solvedCount === 0 && quizCount === 0;
+  const isBaselineOnly =
+    options?.isBaselineOnly !== undefined
+      ? options.isBaselineOnly
+      : existing.dsaScore === 0 && existing.coreCsScore === 0 && existing.oaScore === 0;
 
   return {
     totalScore: existing.totalScore,

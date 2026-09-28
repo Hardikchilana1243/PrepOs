@@ -6,12 +6,33 @@
 import prisma from '../db';
 import { calculatePRS } from './readiness-score';
 
+export interface GradedQuestionReview {
+  questionId: string;
+  questionText: string;
+  explanation: string;
+  topicTitle: string;
+  topicSlug: string;
+  selectedOptionId: string | null;
+  selectedOptionText: string | null;
+  correctOptionId: string;
+  correctOptionText: string;
+  isCorrect: boolean;
+}
+
 export interface QuizSubmissionResult {
   attemptId: string;
+  quizId: string;
+  quizTitle: string;
+  subjectTitle: string;
+  subjectSlug: string;
   totalQuestions: number;
   correctQuestions: number;
   scorePercentage: number;
   passed: boolean;
+  durationSec: number;
+  strongTopics: string[];
+  weakTopics: string[];
+  gradedQuestions: GradedQuestionReview[];
 }
 
 /**
@@ -168,9 +189,13 @@ export async function submitQuizAttempt(
   const quiz = await prisma.coreCSQuiz.findUnique({
     where: { id: quizId },
     include: {
+      subject: true,
       questions: {
+        orderBy: { orderIndex: 'asc' },
         include: {
-          options: true,
+          options: {
+            orderBy: { orderIndex: 'asc' },
+          },
         },
       },
     },
@@ -188,8 +213,15 @@ export async function submitQuizAttempt(
     isCorrect: boolean;
   }[] = [];
 
+  const strongTopicsSet = new Set<string>();
+  const weakTopicsSet = new Set<string>();
+  const gradedQuestions: GradedQuestionReview[] = [];
+
+  const { findTopicForQuestion } = await import('./core-cs-curriculum');
+
   for (const question of quiz.questions) {
-    const selectedOptionId = selectedOptions[question.id];
+    const selectedOptionId = selectedOptions[question.id] || null;
+    const selectedOption = question.options.find((opt) => opt.id === selectedOptionId);
     const correctOption = question.options.find((opt) => opt.isCorrect);
 
     const isCorrect = Boolean(selectedOptionId && correctOption && selectedOptionId === correctOption.id);
@@ -204,6 +236,29 @@ export async function submitQuizAttempt(
         isCorrect,
       });
     }
+
+    const topic = findTopicForQuestion(quiz.subject.slug, question.orderIndex);
+    const topicTitle = topic?.title || 'Core CS Placement Foundations';
+    const topicSlug = topic?.slug || 'core-cs-foundations';
+
+    if (isCorrect) {
+      strongTopicsSet.add(topicTitle);
+    } else {
+      weakTopicsSet.add(topicTitle);
+    }
+
+    gradedQuestions.push({
+      questionId: question.id,
+      questionText: question.questionText,
+      explanation: question.explanation,
+      topicTitle,
+      topicSlug,
+      selectedOptionId: selectedOptionId ?? null,
+      selectedOptionText: selectedOption?.optionText ?? 'No answer provided',
+      correctOptionId: correctOption?.id ?? '',
+      correctOptionText: correctOption?.optionText ?? 'Answer unavailable',
+      isCorrect,
+    });
   }
 
   const scorePct = totalQuestions > 0 ? (correctCount / totalQuestions) * 100 : 0;
@@ -260,21 +315,140 @@ export async function submitQuizAttempt(
     data: {
       userId,
       eventType: 'QUIZ_COMPLETED',
-      metadata: JSON.stringify({ quizId, scorePct, correctCount, totalQuestions }),
+      metadata: JSON.stringify({
+        quizId,
+        scorePct,
+        correctCount,
+        totalQuestions,
+        subjectSlug: quiz.subject.slug,
+        weakTopics: Array.from(weakTopicsSet),
+      }),
     },
   });
+
+  // Automatically mark any pending Core CS daily mission for today as completed
+  await prisma.dailyMission.updateMany({
+    where: {
+      userId,
+      date: today,
+      type: 'CORE_CS',
+      isCompleted: false,
+    },
+    data: {
+      isCompleted: true,
+      completedAt: new Date(),
+    },
+  }).catch(() => null);
 
   // Trigger PRS Recalculation
   await calculatePRS(userId);
 
   return {
     attemptId: attempt.id,
+    quizId: quiz.id,
+    quizTitle: quiz.title,
+    subjectTitle: quiz.subject.title,
+    subjectSlug: quiz.subject.slug,
     totalQuestions,
     correctQuestions: correctCount,
     scorePercentage: Math.round(scorePct),
     passed: scorePct >= 60,
+    durationSec,
+    strongTopics: Array.from(strongTopicsSet).filter((t) => !weakTopicsSet.has(t)),
+    weakTopics: Array.from(weakTopicsSet),
+    gradedQuestions,
   };
 }
+
+/**
+ * Retrieves graded review data for a historical completed quiz attempt.
+ * Validates ownership securely so students can only inspect their own attempts.
+ */
+export async function getQuizAttemptReview(
+  userId: string,
+  attemptId: string
+): Promise<QuizSubmissionResult | null> {
+  const attempt = await prisma.quizAttempt.findFirst({
+    where: { id: attemptId, userId },
+    include: {
+      quiz: {
+        include: {
+          subject: true,
+          questions: {
+            orderBy: { orderIndex: 'asc' },
+            include: {
+              options: {
+                orderBy: { orderIndex: 'asc' },
+              },
+            },
+          },
+        },
+      },
+      answers: true,
+    },
+  });
+
+  if (!attempt) {
+    return null;
+  }
+
+  const { findTopicForQuestion } = await import('./core-cs-curriculum');
+
+  const strongTopicsSet = new Set<string>();
+  const weakTopicsSet = new Set<string>();
+  const gradedQuestions: GradedQuestionReview[] = [];
+
+  const answersMap = new Map(attempt.answers.map((a) => [a.questionId, a]));
+
+  for (const question of attempt.quiz.questions) {
+    const userAnswer = answersMap.get(question.id);
+    const selectedOption = userAnswer
+      ? question.options.find((opt) => opt.id === userAnswer.selectedOptionId)
+      : null;
+    const correctOption = question.options.find((opt) => opt.isCorrect);
+    const isCorrect = userAnswer ? userAnswer.isCorrect : false;
+
+    const topic = findTopicForQuestion(attempt.quiz.subject.slug, question.orderIndex);
+    const topicTitle = topic?.title || 'Core CS Placement Foundations';
+    const topicSlug = topic?.slug || 'core-cs-foundations';
+
+    if (isCorrect) {
+      strongTopicsSet.add(topicTitle);
+    } else {
+      weakTopicsSet.add(topicTitle);
+    }
+
+    gradedQuestions.push({
+      questionId: question.id,
+      questionText: question.questionText,
+      explanation: question.explanation,
+      topicTitle,
+      topicSlug,
+      selectedOptionId: userAnswer?.selectedOptionId ?? null,
+      selectedOptionText: selectedOption?.optionText ?? 'No answer provided',
+      correctOptionId: correctOption?.id ?? '',
+      correctOptionText: correctOption?.optionText ?? 'Answer unavailable',
+      isCorrect,
+    });
+  }
+
+  return {
+    attemptId: attempt.id,
+    quizId: attempt.quiz.id,
+    quizTitle: attempt.quiz.title,
+    subjectTitle: attempt.quiz.subject.title,
+    subjectSlug: attempt.quiz.subject.slug,
+    totalQuestions: attempt.totalQs,
+    correctQuestions: attempt.correctQs,
+    scorePercentage: Math.round(attempt.scorePct),
+    passed: attempt.scorePct >= 60,
+    durationSec: attempt.durationSec,
+    strongTopics: Array.from(strongTopicsSet).filter((t) => !weakTopicsSet.has(t)),
+    weakTopics: Array.from(weakTopicsSet),
+    gradedQuestions,
+  };
+}
+
 
 /**
  * SuperMemo-derived spaced repetition review logger.

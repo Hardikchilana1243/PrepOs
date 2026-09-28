@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
 import { CompanyExplorer } from '@/components/companies/company-explorer';
+import { PageHeader } from '@/components/ui/student-os';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,19 +33,38 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
     redirect('/auth/sign-in');
   }
 
-  // Fetch all 10 companies, patterns, assessments, and mapped problems
+  // Fetch all companies, patterns, assessments, and mapped problems
   const [companies, userProgress] = await Promise.all([
     prisma.company.findMany({
-      include: {
+      select: {
+        id: true,
+        slug: true,
+        name: true,
         patterns: {
           orderBy: { frequencyPct: 'desc' },
+          select: {
+            patternName: true,
+            frequencyPct: true,
+          },
         },
         assessments: {
           take: 1,
+          select: {
+            title: true,
+            durationMin: true,
+            totalQuestions: true,
+          },
         },
         companyProblems: {
-          include: {
-            problem: true,
+          select: {
+            problem: {
+              select: {
+                id: true,
+                slug: true,
+                title: true,
+                difficulty: true,
+              },
+            },
           },
         },
       },
@@ -87,14 +107,11 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <div className="pb-2 border-b border-slate-800">
-        <h1 className="text-2xl font-bold text-white tracking-tight">
-          Company Placement Hubs
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Deconstruct hiring trends, high-yield algorithmic patterns, and exact online assessment formats for top engineering recruiters.
-        </p>
-      </div>
+      <PageHeader
+        title="Company Placement Hubs"
+        subtitle="Deconstruct verified interview patterns, hiring trends, and mapped algorithmic problems across top software engineering recruiters."
+        tag="Level 3 — Context & Companies"
+      />
 
       <CompanyExplorer
         companies={formattedCompanies}

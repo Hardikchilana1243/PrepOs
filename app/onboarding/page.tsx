@@ -10,8 +10,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Brain,
-  Code2,
-  Cpu,
 } from 'lucide-react';
 
 export default function OnboardingPage() {
@@ -69,50 +67,50 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#070A10] text-slate-100 flex flex-col justify-center items-center px-4 py-12 selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col justify-center items-center px-4 py-12 selection:bg-blue-600 selection:text-white font-sans">
       {/* Header Container */}
       <div className="w-full max-w-xl text-center mb-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-cyan-400 mb-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-xs font-semibold text-blue-600 mb-3">
           <Sparkles className="w-3.5 h-3.5" />
           <span>Placement Diagnostic & Setup</span>
         </div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
           Initialize Your Placement Profile
         </h1>
-        <p className="text-xs text-slate-400 mt-1">
+        <p className="text-xs text-slate-500 mt-1">
           Calibrate your roadmap and daily mission cadence.
         </p>
 
         {/* 2-Step Progress Indicator */}
         <div className="flex items-center justify-center gap-3 mt-6">
-          <div className="flex items-center gap-2 text-xs font-mono">
+          <div className="flex items-center gap-2 text-xs font-medium">
             <span
-              className={`w-6 h-6 rounded-full flex items-center justify-center font-bold ${
+              className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
                 step === 1
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
+                  ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-emerald-600 text-white'
               }`}
             >
               1
             </span>
-            <span className={step === 1 ? 'text-white font-medium' : 'text-slate-500'}>
+            <span className={step === 1 ? 'text-slate-900 font-semibold' : 'text-slate-400'}>
               Student Profile
             </span>
           </div>
 
-          <div className="w-12 h-0.5 bg-slate-800" />
+          <div className="w-12 h-0.5 bg-slate-200" />
 
-          <div className="flex items-center gap-2 text-xs font-mono">
+          <div className="flex items-center gap-2 text-xs font-medium">
             <span
-              className={`w-6 h-6 rounded-full flex items-center justify-center font-bold ${
+              className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${
                 step === 2
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/25'
-                  : 'bg-slate-800 text-slate-500'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'bg-slate-200 text-slate-500'
               }`}
             >
               2
             </span>
-            <span className={step === 2 ? 'text-white font-medium' : 'text-slate-500'}>
+            <span className={step === 2 ? 'text-slate-900 font-semibold' : 'text-slate-400'}>
               Baseline Diagnostic
             </span>
           </div>
@@ -120,10 +118,10 @@ export default function OnboardingPage() {
       </div>
 
       {/* Main Card */}
-      <div className="w-full max-w-xl rounded-2xl bg-[#0F172A] border border-slate-800 shadow-2xl p-6 sm:p-8">
+      <div className="w-full max-w-xl rounded-2xl bg-white border border-slate-200/90 shadow-sm p-6 sm:p-8">
         {error && (
-          <div className="mb-5 p-3 rounded-xl bg-rose-950/40 border border-rose-800/50 text-xs text-rose-300 flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
+          <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-600 mt-0.5 shrink-0" />
             <span>{error}</span>
           </div>
         )}
@@ -131,26 +129,26 @@ export default function OnboardingPage() {
         {/* STEP 1: STUDENT PROFILE */}
         {step === 1 && (
           <div className="space-y-5">
-            <div className="pb-3 border-b border-slate-800">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <GraduationCap className="w-4 h-4 text-blue-400" />
+            <div className="pb-3 border-b border-slate-100">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <GraduationCap className="w-4 h-4 text-blue-600" />
                 <span>Academic & Placement Goals</span>
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 mt-0.5">
                 Target company tier will tailor the difficulty of your daily missions.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5" htmlFor="gradYear">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5" htmlFor="gradYear">
                   Graduation Year
                 </label>
                 <select
                   id="gradYear"
                   value={gradYear}
                   onChange={(e) => setGradYear(Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-100 outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-blue-600"
                 >
                   <option value={2024}>2024 (Immediate Placement)</option>
                   <option value={2025}>2025 (Final Year)</option>
@@ -161,14 +159,14 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5" htmlFor="targetDegree">
+                <label className="block text-xs font-medium text-slate-700 mb-1.5" htmlFor="targetDegree">
                   Degree / Program
                 </label>
                 <select
                   id="targetDegree"
                   value={targetDegree}
                   onChange={(e) => setTargetDegree(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-100 outline-none focus:border-blue-500"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 outline-none focus:border-blue-600"
                 >
                   <option value="B.Tech / B.E.">B.Tech / B.E. (CSE / IT / ECE)</option>
                   <option value="BCA">BCA (Computer Applications)</option>
@@ -181,7 +179,7 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+              <label className="block text-xs font-medium text-slate-700 mb-1.5">
                 Target Company Tier
               </label>
               <div className="grid grid-cols-1 gap-2.5">
@@ -208,19 +206,19 @@ export default function OnboardingPage() {
                     onClick={() => setTargetRoleTier(tier.id)}
                     className={`p-3.5 rounded-xl text-left border transition-all ${
                       targetRoleTier === tier.id
-                        ? 'bg-blue-600/15 border-blue-500 text-white shadow-sm shadow-blue-500/10'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                        ? 'bg-blue-50 border-blue-500 text-slate-900 shadow-sm'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:border-slate-300'
                     }`}
                   >
-                    <div className="text-xs font-bold text-slate-200">{tier.title}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">{tier.desc}</div>
+                    <div className="text-xs font-bold text-slate-900">{tier.title}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{tier.desc}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+              <label className="block text-xs font-medium text-slate-700 mb-1.5">
                 Preferred Coding Language
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -234,10 +232,10 @@ export default function OnboardingPage() {
                     key={lang.id}
                     type="button"
                     onClick={() => setPreferredLang(lang.id as any)}
-                    className={`py-2 px-3 rounded-xl text-center text-xs font-mono font-semibold border transition-all ${
+                    className={`py-2 px-3 rounded-xl text-center text-xs font-semibold border transition-all ${
                       preferredLang === lang.id
-                        ? 'bg-blue-600 text-white border-blue-500 shadow-sm'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                     }`}
                   >
                     {lang.name}
@@ -249,7 +247,7 @@ export default function OnboardingPage() {
             <button
               type="button"
               onClick={handleNext}
-              className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 mt-4"
+              className="w-full py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2 mt-4"
             >
               <span>Continue to Diagnostic</span>
               <ArrowRight className="w-4 h-4" />
@@ -260,24 +258,24 @@ export default function OnboardingPage() {
         {/* STEP 2: BASELINE DIAGNOSTIC */}
         {step === 2 && (
           <div className="space-y-5">
-            <div className="pb-3 border-b border-slate-800 flex items-center justify-between">
+            <div className="pb-3 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-cyan-400" />
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Brain className="w-4 h-4 text-blue-600" />
                   <span>Placement Baseline Diagnostic</span>
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Establish your starting point. No negative marking.
                 </p>
               </div>
-              <span className="text-xs font-mono text-cyan-400 font-bold bg-cyan-950/40 border border-cyan-800/40 px-2 py-0.5 rounded">
+              <span className="text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full">
                 3 Questions
               </span>
             </div>
 
             {/* Diagnostic Q1: DSA */}
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="text-xs font-semibold text-slate-200 mb-2">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="text-xs font-semibold text-slate-900 mb-2">
                 1. What is the average time complexity of searching in a balanced Binary Search Tree?
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -288,8 +286,8 @@ export default function OnboardingPage() {
                     onClick={() => setDsaAnswer(opt)}
                     className={`py-2 px-3 rounded-lg text-xs font-mono border text-center transition-all ${
                       dsaAnswer === opt
-                        ? 'bg-blue-600/20 border-blue-500 text-blue-300 font-bold'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                        ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold'
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
                     }`}
                   >
                     {opt}
@@ -299,8 +297,8 @@ export default function OnboardingPage() {
             </div>
 
             {/* Diagnostic Q2: DBMS */}
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="text-xs font-semibold text-slate-200 mb-2">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="text-xs font-semibold text-slate-900 mb-2">
                 2. Which ACID property ensures that all transaction operations complete or none take effect?
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -311,8 +309,8 @@ export default function OnboardingPage() {
                     onClick={() => setDbmsAnswer(opt)}
                     className={`py-2 px-3 rounded-lg text-xs font-mono border text-center transition-all ${
                       dbmsAnswer === opt
-                        ? 'bg-cyan-600/20 border-cyan-500 text-cyan-300 font-bold'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                        ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold'
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
                     }`}
                   >
                     {opt}
@@ -322,8 +320,8 @@ export default function OnboardingPage() {
             </div>
 
             {/* Diagnostic Q3: Operating Systems */}
-            <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800">
-              <div className="text-xs font-semibold text-slate-200 mb-2">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="text-xs font-semibold text-slate-900 mb-2">
                 3. What is the key memory distinction between processes and threads?
               </div>
               <div className="space-y-1.5">
@@ -338,8 +336,8 @@ export default function OnboardingPage() {
                     onClick={() => setOsAnswer(opt.id)}
                     className={`w-full p-2.5 rounded-lg text-xs text-left border transition-all ${
                       osAnswer === opt.id
-                        ? 'bg-emerald-600/20 border-emerald-500 text-emerald-300 font-semibold'
-                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                        ? 'bg-blue-50 border-blue-500 text-blue-800 font-semibold'
+                        : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300'
                     }`}
                   >
                     {opt.label}
@@ -352,7 +350,7 @@ export default function OnboardingPage() {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors flex items-center gap-1.5"
+                className="py-3 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1.5"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back</span>
@@ -361,7 +359,7 @@ export default function OnboardingPage() {
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleSubmit}
-                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold text-sm transition-all shadow-md shadow-blue-500/20 flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2"
               >
                 <span>{isSubmitting ? 'Calculating PRS Baseline...' : 'Complete Setup & Launch Dashboard'}</span>
                 <CheckCircle2 className="w-4 h-4" />

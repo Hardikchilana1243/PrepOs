@@ -1,10 +1,13 @@
 import { cookies } from 'next/headers';
+import React from 'react';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import prisma from './db';
 
 const SESSION_COOKIE_NAME = 'prepos_session';
 const SESSION_DURATION_DAYS = 30;
+
+const cache = (React as any).cache || (<T extends (...args: any[]) => any>(fn: T): T => fn);
 
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
@@ -39,7 +42,7 @@ export async function createSession(userId: string): Promise<string> {
   return sessionToken;
 }
 
-export async function getSessionUser() {
+export const getSessionUser = cache(async () => {
   try {
     const cookieStore = cookies();
     const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
@@ -64,11 +67,14 @@ export async function getSessionUser() {
     }
 
     return session.user;
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw error;
+    }
     console.error('Failed to get session user:', error);
     return null;
   }
-}
+});
 
 export async function destroySession(): Promise<void> {
   try {

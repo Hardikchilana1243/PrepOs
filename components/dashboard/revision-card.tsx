@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { RotateCcw, ArrowUpRight, Sparkles, Clock } from 'lucide-react';
+import { RotateCcw, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 
 interface RevisionCardProps {
   revisionSummary: {
@@ -13,53 +13,60 @@ export function RevisionCard({ revisionSummary }: RevisionCardProps) {
   const { dueCount, nextRevisionTitle } = revisionSummary;
 
   return (
-    <div className="rounded-2xl bg-[#0F172A] border border-slate-800/80 p-5 flex flex-col justify-between shadow-xl">
+    <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm flex flex-col justify-between">
       <div>
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <RotateCcw className="w-4 h-4 text-emerald-400" />
-            <span>Spaced Revision Queue</span>
+        {/* Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <RotateCcw className="w-4 h-4" />
+            </div>
+            <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
+              Spaced Revision
+            </h3>
           </div>
-          <Link
-            href="/dashboard/revision"
-            className="text-xs font-medium text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1"
+          <span
+            className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+              dueCount > 0
+                ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                : 'bg-emerald-50 text-emerald-700'
+            }`}
           >
-            Queue <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
+            {dueCount} Due
+          </span>
         </div>
 
-        {dueCount > 0 ? (
-          <div className="mt-4">
-            <div className="flex items-baseline justify-between">
-              <div className="text-2xl font-black font-mono text-emerald-400">
-                {dueCount} <span className="text-sm font-normal text-slate-400">due for revision</span>
+        {/* Status Content */}
+        <div className="mt-3">
+          {dueCount > 0 ? (
+            <div className="p-3 rounded-xl bg-amber-50/60 border border-amber-200/60">
+              <div className="flex items-center gap-2 text-xs font-semibold text-amber-800">
+                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>{dueCount} items ready for recall review</span>
               </div>
+              {nextRevisionTitle && (
+                <p className="text-xs text-amber-700 mt-1 truncate">
+                  Next: {nextRevisionTitle}
+                </p>
+              )}
             </div>
-            {nextRevisionTitle && (
-              <div className="mt-3 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
-                <span className="text-[10px] font-mono text-slate-500 uppercase font-semibold block mb-0.5">
-                  Due Today:
-                </span>
-                <span className="text-slate-200 font-medium">{nextRevisionTitle}</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="mt-4 p-4 rounded-xl bg-slate-900/40 border border-slate-800/60 text-center">
-            <Clock className="w-6 h-6 text-slate-500 mx-auto mb-2" />
-            <div className="text-xs font-semibold text-slate-300">
-              No revisions due yet.
+          ) : (
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 text-xs text-slate-600 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>Queue is clear! Up to date with SM-2 intervals.</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-              Complete problems and quizzes to build your automated spaced-repetition queue.
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-        <span>Algorithm: SuperMemo SM-2</span>
-        <span className="font-mono text-slate-500">Day 7 Cadence</span>
+      <div className="mt-4 pt-3 border-t border-slate-100">
+        <Link
+          href="/dashboard/revision"
+          className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center justify-between group"
+        >
+          <span>{dueCount > 0 ? 'Review due items' : 'Open revision queue'}</span>
+          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
       </div>
     </div>
   );

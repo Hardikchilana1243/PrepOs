@@ -66,13 +66,26 @@ export async function getOrCreateDailyMissions(userId: string): Promise<MissionI
     ? `Target: ${nextProblem.difficulty} problem covering ${nextProblem.slug.split('-').slice(0, 2).join(' ')}.`
     : 'Review your previously solved algorithms and edge cases.';
 
-  // Task 2: Core CS Speed Drill (DBMS or OS)
-  const dbmsQuiz = await prisma.coreCSQuiz.findFirst({
-    where: { slug: 'dbms-placement-quiz' },
-  });
-  const coreCsTargetId = dbmsQuiz?.slug ?? 'dbms-placement-quiz';
-  const coreCsTitle = 'Complete DBMS Speed Drill (10 MCQs)';
-  const coreCsDesc = 'Review ACID properties, normalization, indexing, and SQL transactions.';
+  // Task 2: Core CS Speed Drill (DBMS or OS dynamically balanced)
+  const [dbmsAttempts, osAttempts] = await Promise.all([
+    prisma.quizAttempt.count({
+      where: { userId, quiz: { slug: 'dbms-placement-quiz' } },
+    }),
+    prisma.quizAttempt.count({
+      where: { userId, quiz: { slug: 'os-placement-quiz' } },
+    }),
+  ]);
+
+  const targetSlug = dbmsAttempts <= osAttempts ? 'dbms-placement-quiz' : 'os-placement-quiz';
+  const isTargetDbms = targetSlug === 'dbms-placement-quiz';
+
+  const coreCsTargetId = targetSlug;
+  const coreCsTitle = isTargetDbms
+    ? 'Complete DBMS Speed Drill (10 MCQs)'
+    : 'Complete Operating Systems Speed Drill (10 MCQs)';
+  const coreCsDesc = isTargetDbms
+    ? 'Review ACID properties, normalization, B+ Tree indexing, and SQL transactions.'
+    : 'Review process concurrency, Coffman deadlock conditions, TLB, and virtual memory paging.';
 
   // Task 3: Spaced Repetition / Placement Pattern Review
   const revTitle = 'Revise Placement High-Yield Pattern';
