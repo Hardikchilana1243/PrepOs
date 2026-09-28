@@ -1,15 +1,9 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
-  "/auth/sign-up/page": "app/auth/sign-up/page.js",
-  "/auth/sign-in/page": "app/auth/sign-in/page.js",
-  "/onboarding/page": "app/onboarding/page.js",
-  "/dashboard/dsa/problem/[slug]/page": "app/dashboard/dsa/problem/[slug]/page.js",
-  "/dashboard/dsa/[slug]/page": "app/dashboard/dsa/[slug]/page.js",
-  "/dashboard/core-cs/page": "app/dashboard/core-cs/page.js",
   "/dashboard/dsa/page": "app/dashboard/dsa/page.js",
+  "/auth/sign-in/page": "app/auth/sign-in/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/core-cs/page": "app/dashboard/core-cs/page.js",
   "/dashboard/companies/page": "app/dashboard/companies/page.js",
-  "/dashboard/profile/page": "app/dashboard/profile/page.js",
-  "/dashboard/revision/page": "app/dashboard/revision/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/dashboard/revision/page": "app/dashboard/revision/page.js"
 }
