@@ -5,6 +5,7 @@
 
 import prisma from '../db';
 import { calculatePRS } from './readiness-score';
+import { normalizeUtcMidnight } from '../utils/date';
 
 export interface GradedQuestionReview {
   questionId: string;
@@ -132,8 +133,7 @@ export async function recordProblemSolved(userId: string, problemId: string) {
   });
 
   // 4. Update Profile Streak & Activity Event
-  const now = new Date();
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const today = normalizeUtcMidnight();
 
   await prisma.streakEvent.upsert({
     where: {
@@ -289,8 +289,7 @@ export async function submitQuizAttempt(
   }
 
   // Record Activity & Streak
-  const now = new Date();
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const today = normalizeUtcMidnight();
 
   await prisma.streakEvent.upsert({
     where: {
@@ -491,8 +490,7 @@ export async function recordRevisionReview(
   });
 
   // Record streak / activity
-  const now = new Date();
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const today = normalizeUtcMidnight();
 
   await prisma.streakEvent.upsert({
     where: {

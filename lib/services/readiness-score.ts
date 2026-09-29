@@ -4,6 +4,11 @@
 // ============================================================================
 
 import prisma from '../db';
+import {
+  getCachedUserSolvedCount,
+  getCachedUserQuizAttempts,
+  getCachedTotalProblemCount,
+} from './dashboard-queries';
 
 export interface PRSComponents {
   totalScore: number;
@@ -15,8 +20,6 @@ export interface PRSComponents {
   isBaselineOnly: boolean;
 }
 
-const TOTAL_SEEDED_PROBLEMS = 20;
-
 export interface ReadinessScoreOptions {
   streakDays?: number;
   isBaselineOnly?: boolean;
@@ -25,35 +28,32 @@ export interface ReadinessScoreOptions {
 /**
  * Calculates and persists the Placement Readiness Score (PRS v1) for a user.
  * Derived solely from verified database activity:
- * - DSA Component: 40% (Solved problems out of 20)
+ * - DSA Component: 40% (Solved problems out of total published problems)
  * - Core CS Component: 30% (Average quiz attempt scores)
  * - OA Component: 15% (Company OA attempt scores, fallback to baseline if 0)
  * - Consistency Component: 15% (Profile streak days up to 14 days)
  */
 export async function calculatePRS(userId: string): Promise<PRSComponents> {
-  const [profile, solvedCount, quizAttempts, oaAttempts] = await Promise.all([
+  const [profile, solvedCount, quizAttempts, oaAttempts, totalProblems] = await Promise.all([
     prisma.profile.findUnique({
       where: { userId },
       select: { streakDays: true },
     }),
-    prisma.userProgress.count({
+    getCachedUserSolvedCount(userId),
+    getCachedUserQuizAttempts(userId),
+    prisma.assessmentAttempt.findMany({
       where: {
         userId,
-        isSolved: true,
+        status: { in: ['SUBMITTED', 'EVALUATING', 'EVALUATED', 'EXPIRED'] },
       },
+      select: { totalScore: true, maxPossibleScore: true, scorePct: true },
     }),
-    prisma.quizAttempt.findMany({
-      where: { userId },
-      select: { scorePct: true },
-    }),
-    prisma.oAAttempt.findMany({
-      where: { userId },
-      select: { score: true, totalQuestions: true },
-    }),
+    getCachedTotalProblemCount(),
   ]);
 
   // 1. DSA Component (0 - 100%)
-  const dsaRatio = Math.min(1.0, solvedCount / TOTAL_SEEDED_PROBLEMS);
+  const totalSeeded = totalProblems > 0 ? totalProblems : 20;
+  const dsaRatio = Math.min(1.0, solvedCount / totalSeeded);
   const dsaScore = Math.round(dsaRatio * 100);
 
   // 2. Core CS Component (0 - 100%)
@@ -63,11 +63,11 @@ export async function calculatePRS(userId: string): Promise<PRSComponents> {
     coreCsScore = Math.round(sumPct / quizAttempts.length);
   }
 
-  // 3. OA Component (0 - 100%)
+  // 3. OA Component (0 - 100%) - Configurable policy: ALL evaluated attempts
   let oaScore = 0;
   if (oaAttempts.length > 0) {
-    const totalPossible = oaAttempts.reduce((acc, oa) => acc + oa.totalQuestions, 0);
-    const totalEarned = oaAttempts.reduce((acc, oa) => acc + oa.score, 0);
+    const totalPossible = oaAttempts.reduce((acc, oa) => acc + oa.maxPossibleScore, 0);
+    const totalEarned = oaAttempts.reduce((acc, oa) => acc + oa.totalScore, 0);
     oaScore = totalPossible > 0 ? Math.round((totalEarned / totalPossible) * 100) : 0;
   }
 

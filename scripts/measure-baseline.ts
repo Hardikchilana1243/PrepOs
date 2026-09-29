@@ -1,136 +1,227 @@
 import prisma from '../lib/db';
-import { getDashboardData } from '../lib/services/dashboard';
+import { getPrimaryDashboardData, getPreparationPillarsData } from '../lib/services/dashboard';
 import { getDSARoadmapData, getProblemDetailData } from '../lib/services/dsa-roadmap';
-import { getReadinessScore } from '../lib/services/readiness-score';
+import { getCoreCSHubData } from '../lib/services/core-cs';
+import { getAssessmentOverview, getAssessmentWorkspaceData } from '../lib/services/assessment';
+import { compileResultSummary } from '../lib/services/assessment-scoring';
+import { calculatePRS } from '../lib/services/readiness-score';
 
-async function runProfile() {
+interface CapturedQuery {
+  model?: string;
+  action: string;
+  args?: any;
+}
+
+const capturedQueries: CapturedQuery[] = [];
+
+(prisma as any).$use(async (params: any, next: any) => {
+  capturedQueries.push({
+    model: params.model,
+    action: params.action,
+    args: params.args,
+  });
+  return next(params);
+});
+
+async function runBaseline() {
   console.log('====================================================');
-  console.log('PREPOS BASELINE PERFORMANCE AUDIT');
+  console.log('PREPOS BASELINE PERFORMANCE & EXACT QUERY AUDIT');
   console.log('====================================================\n');
 
-  // Find a test user with solved history
   const user = await prisma.user.findFirst({
     where: { email: 'priya.candidate@univ.edu' },
     include: { profile: true },
   });
 
   if (!user) {
-    console.error('Test user not found');
-    process.exit(1);
+    throw new Error('Test user not found');
   }
 
   const userId = user.id;
-  console.log(`Profiling with User ID: ${userId} (${user.name})`);
 
-  // 1. Dashboard Service
-  const t0 = performance.now();
-  const dashboardData = await getDashboardData(userId);
-  const tDashboard = performance.now() - t0;
-  const dashboardPayloadBytes = Buffer.byteLength(JSON.stringify(dashboardData), 'utf8');
-  console.log(`[1] /dashboard data load: ${tDashboard.toFixed(2)} ms (Payload: ${(dashboardPayloadBytes / 1024).toFixed(2)} KB)`);
+  interface BenchmarkRecord {
+    operation: string;
+    durationMs: number;
+    queryCount: number;
+    payloadKb: number;
+    queryList: string[];
+  }
 
-  // 2. DSA Roadmap Service
-  const t1 = performance.now();
-  const roadmapData = await getDSARoadmapData(userId);
-  const tRoadmap = performance.now() - t1;
-  const roadmapPayloadBytes = Buffer.byteLength(JSON.stringify(roadmapData), 'utf8');
-  console.log(`[2] /dashboard/dsa roadmap load: ${tRoadmap.toFixed(2)} ms (Payload: ${(roadmapPayloadBytes / 1024).toFixed(2)} KB, Problems: ${roadmapData.allProblems.length})`);
+  const records: BenchmarkRecord[] = [];
 
-  // 3. Problem Detail (array-element-frequency-counter)
-  const problemSlug = 'array-element-frequency-counter';
-  const t2 = performance.now();
-  const problemData = await getProblemDetailData(userId, problemSlug);
-  const tProblem = performance.now() - t2;
-  const problemPayloadBytes = Buffer.byteLength(JSON.stringify(problemData), 'utf8');
-  console.log(`[3] Problem Workspace (${problemSlug}): ${tProblem.toFixed(2)} ms (Payload: ${(problemPayloadBytes / 1024).toFixed(2)} KB)`);
+  async function benchmark(name: string, fn: () => Promise<any>): Promise<any> {
+    capturedQueries.length = 0;
+    const start = performance.now();
+    const result = await fn();
+    const durationMs = Math.round((performance.now() - start) * 100) / 100;
+    const payloadBytes = Buffer.byteLength(JSON.stringify(result || {}));
+    const queryList = capturedQueries.map(
+      (q) => `${q.model ? q.model + '.' : ''}${q.action}`
+    );
+    records.push({
+      operation: name,
+      durationMs,
+      queryCount: capturedQueries.length,
+      payloadKb: Math.round((payloadBytes / 1024) * 100) / 100,
+      queryList: [...queryList],
+    });
+    return result;
+  }
 
-  // 4. Core CS Queries
-  const t3 = performance.now();
-  const [quizzes, attempts] = await Promise.all([
-    prisma.coreCSQuiz.findMany({
-      include: {
-        subject: true,
-        questions: {
+  // 1. Primary Dashboard Data
+  await benchmark('1. Primary Dashboard Data', () => getPrimaryDashboardData(userId));
+
+  // 2. Preparation Pillars Data
+  await benchmark('2. Preparation Pillars Data', () => getPreparationPillarsData(userId));
+
+  // 3. Combined Dashboard Page Data (as executed in app/dashboard/page.tsx)
+  await benchmark('3. Combined Dashboard Full Load', async () => {
+    const primary = await getPrimaryDashboardData(userId);
+    const pillars = await getPreparationPillarsData(userId);
+    return { primary, pillars };
+  });
+
+  // 4. calculatePRS in isolation
+  await benchmark('4. calculatePRS (in isolation)', () => calculatePRS(userId));
+
+  // 5. DSA Roadmap Data
+  await benchmark('5. DSA Roadmap Data', () => getDSARoadmapData(userId));
+
+  // 6. DSA Problem Detail
+  await benchmark('6. DSA Problem Detail (array-element-frequency-counter)', () =>
+    getProblemDetailData(userId, 'array-element-frequency-counter')
+  );
+
+  // 7. Core CS Hub Data
+  await benchmark('7. Core CS Hub Data', () => getCoreCSHubData(userId));
+
+  // 8. Companies Page Query
+  await benchmark('8. Companies Page Data', async () => {
+    return prisma.company.findMany({
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        patterns: {
+          orderBy: { frequencyPct: 'desc' },
+          select: { patternName: true, frequencyPct: true },
+        },
+        assessments: {
+          where: { status: 'PUBLISHED' },
           orderBy: { orderIndex: 'asc' },
-          include: {
-            options: {
-              select: {
-                id: true,
-                optionText: true,
-                orderIndex: true,
-              },
-              orderBy: { orderIndex: 'asc' },
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            durationMin: true,
+            totalMarks: true,
+            totalQuestions: true,
+            difficulty: true,
+            sections: {
+              select: { id: true, title: true, type: true, totalMarks: true },
+            },
+            attempts: {
+              where: { userId },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: { id: true, status: true, scorePct: true, totalScore: true, passed: true },
+            },
+          },
+        },
+        companyProblems: {
+          select: {
+            problem: {
+              select: { id: true, slug: true, title: true, difficulty: true },
             },
           },
         },
       },
-      orderBy: { orderIndex: 'asc' },
-    }),
-    prisma.quizAttempt.findMany({
-      where: { userId },
-      include: { quiz: true },
-      orderBy: { completedAt: 'desc' },
-      take: 10,
-    }),
-  ]);
-  const tCoreCS = performance.now() - t3;
-  const coreCsPayloadBytes = Buffer.byteLength(JSON.stringify({ quizzes, attempts }), 'utf8');
-  console.log(`[4] /dashboard/core-cs queries: ${tCoreCS.toFixed(2)} ms (Payload: ${(coreCsPayloadBytes / 1024).toFixed(2)} KB)`);
-
-  // 5. Companies Queries
-  const t4 = performance.now();
-  const [companies, userProgress] = await Promise.all([
-    prisma.company.findMany({
-      include: {
-        patterns: { orderBy: { frequencyPct: 'desc' } },
-        assessments: { take: 1 },
-        companyProblems: { include: { problem: true } },
-      },
       orderBy: { name: 'asc' },
-    }),
-    prisma.userProgress.findMany({
-      where: { userId, isSolved: true },
-      select: { problemId: true },
-    }),
-  ]);
-  const tCompanies = performance.now() - t4;
-  const companiesPayloadBytes = Buffer.byteLength(JSON.stringify({ companies, userProgress }), 'utf8');
-  console.log(`[5] /dashboard/companies queries: ${tCompanies.toFixed(2)} ms (Payload: ${(companiesPayloadBytes / 1024).toFixed(2)} KB)`);
-
-  // 6. Revision Queries
-  const t5 = performance.now();
-  const revisions = await prisma.revision.findMany({
-    where: { userId },
-    include: {
-      problem: {
-        include: { topic: true },
-      },
-    },
-    orderBy: { dueAt: 'asc' },
+    });
   });
-  const tRevision = performance.now() - t5;
-  const revisionPayloadBytes = Buffer.byteLength(JSON.stringify(revisions), 'utf8');
-  console.log(`[6] /dashboard/revision queries: ${tRevision.toFixed(2)} ms (Payload: ${(revisionPayloadBytes / 1024).toFixed(2)} KB)`);
 
-  // 7. Profile Queries
-  const t6 = performance.now();
-  const [dbUser, readiness, history] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      include: { profile: true },
-    }),
-    getReadinessScore(userId),
-    prisma.readinessScoreHistory.findMany({
+  // 9. Revision Page Data
+  await benchmark('9. Revision Page Data', async () => {
+    return Promise.all([
+      prisma.revision.findMany({
+        where: { userId },
+        include: { problem: { select: { id: true, title: true, slug: true, difficulty: true } } },
+      }),
+      prisma.quizAnswer.findMany({
+        where: { isCorrect: false, attempt: { userId } },
+        take: 20,
+      }),
+    ]);
+  });
+
+  // 10. Assessment Overview
+  const assessment = await prisma.assessment.findFirst({
+    where: { status: 'PUBLISHED' },
+  });
+  if (assessment) {
+    await benchmark(`10. Assessment Overview (${assessment.slug})`, () =>
+      getAssessmentOverview(assessment.slug, userId)
+    );
+
+    const attempt = await prisma.assessmentAttempt.findFirst({
       where: { userId },
-      orderBy: { recordedAt: 'desc' },
-      take: 15,
-    }),
-  ]);
-  const tProfile = performance.now() - t6;
-  const profilePayloadBytes = Buffer.byteLength(JSON.stringify({ dbUser, readiness, history }), 'utf8');
-  console.log(`[7] /dashboard/profile queries: ${tProfile.toFixed(2)} ms (Payload: ${(profilePayloadBytes / 1024).toFixed(2)} KB)`);
+      orderBy: { createdAt: 'desc' },
+    });
 
-  console.log('\n====================================================\n');
+    if (attempt) {
+      await benchmark(`11. Assessment Result Summary (${attempt.id})`, () =>
+        compileResultSummary(attempt.id)
+      );
+    }
+  }
+
+  console.log('\n--- BASELINE BENCHMARK SUMMARY ---');
+  console.table(
+    records.map((r) => ({
+      Operation: r.operation,
+      'Duration (ms)': r.durationMs,
+      'Query Count': r.queryCount,
+      'Payload (KB)': r.payloadKb,
+    }))
+  );
+
+  // Detailed Analysis of Dashboard Queries
+  const dashboardRecord = records.find((r) => r.operation === '3. Combined Dashboard Full Load');
+  if (dashboardRecord) {
+    console.log('\n--- DETAILED COMBINED DASHBOARD QUERIES ---');
+    console.log(`Total queries executed on Dashboard: ${dashboardRecord.queryCount}`);
+    dashboardRecord.queryList.forEach((q, i) => {
+      console.log(`  Query #${i + 1}: ${q}`);
+    });
+
+    // Detect duplicates
+    const counts: Record<string, number> = {};
+    dashboardRecord.queryList.forEach((q) => {
+      counts[q] = (counts[q] || 0) + 1;
+    });
+
+    console.log('\n--- DUPLICATE QUERY PATTERNS DETECTED ON DASHBOARD ---');
+    let hasDup = false;
+    for (const [q, count] of Object.entries(counts)) {
+      if (count > 1) {
+        hasDup = true;
+        console.log(`  * ${q} called ${count} times during a single dashboard load!`);
+      }
+    }
+    if (!hasDup) {
+      console.log('  No duplicate model.action detected.');
+    }
+  }
+
+  // DSA Roadmap Analysis
+  const dsaRecord = records.find((r) => r.operation === '5. DSA Roadmap Data');
+  if (dsaRecord) {
+    console.log('\n--- DSA ROADMAP QUERIES ---');
+    console.log(`Total queries: ${dsaRecord.queryCount} | Payload: ${dsaRecord.payloadKb} KB`);
+    dsaRecord.queryList.forEach((q, i) => {
+      console.log(`  Query #${i + 1}: ${q}`);
+    });
+  }
 }
 
-runProfile().catch(console.error).finally(() => process.exit(0));
+runBaseline().catch(console.error);

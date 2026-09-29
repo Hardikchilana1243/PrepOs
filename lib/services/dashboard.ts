@@ -6,6 +6,13 @@
 import prisma from '../db';
 import { getReadinessScore, PRSComponents } from './readiness-score';
 import { getOrCreateDailyMissions, MissionItem } from './daily-mission';
+import {
+  getCachedUserSolvedCount,
+  getCachedUserQuizAttempts,
+  getCachedTotalProblemCount,
+  getCachedPublishedQuizzes,
+  getCachedCompanyHighlights,
+} from './dashboard-queries';
 
 export interface DashboardData {
   user: {
@@ -161,10 +168,8 @@ export async function getPreparationPillarsData(userId: string): Promise<Prepara
     revisionsDueCount,
     nextRevision,
   ] = await Promise.all([
-    prisma.userProgress.count({
-      where: { userId, isSolved: true },
-    }),
-    prisma.problem.count(),
+    getCachedUserSolvedCount(userId),
+    getCachedTotalProblemCount(),
     prisma.problem.findFirst({
       where: {
         status: 'PUBLISHED',
@@ -182,38 +187,9 @@ export async function getPreparationPillarsData(userId: string): Promise<Prepara
         difficulty: true,
       },
     }),
-    prisma.coreCSQuiz.findMany({
-      orderBy: { orderIndex: 'asc' },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        subject: {
-          select: { title: true },
-        },
-      },
-    }),
-    prisma.quizAttempt.findMany({
-      where: { userId },
-      select: { quizId: true, scorePct: true },
-    }),
-    prisma.company.findMany({
-      take: 4,
-      orderBy: { name: 'asc' },
-      select: {
-        slug: true,
-        name: true,
-        logoUrl: true,
-        patterns: {
-          take: 1,
-          orderBy: { frequencyPct: 'desc' },
-          select: { patternName: true },
-        },
-        _count: {
-          select: { companyProblems: true },
-        },
-      },
-    }),
+    getCachedPublishedQuizzes(),
+    getCachedUserQuizAttempts(userId),
+    getCachedCompanyHighlights(),
     prisma.revision.count({
       where: {
         userId,

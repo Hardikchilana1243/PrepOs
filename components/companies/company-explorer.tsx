@@ -23,11 +23,23 @@ interface CompanyData {
     difficulty: string;
     isSolved: boolean;
   }[];
-  assessment: {
+  assessments: {
+    id: string;
+    slug: string;
     title: string;
+    description: string | null;
     durationMin: number;
+    totalMarks: number;
     totalQuestions: number;
-  } | null;
+    difficulty: string;
+    sectionsCount: number;
+    latestAttempt?: {
+      id: string;
+      status: string;
+      scorePct: number;
+      passed: boolean;
+    } | null;
+  }[];
 }
 
 interface CompanyExplorerProps {
@@ -124,15 +136,83 @@ export function CompanyExplorer({ companies, initialCompanySlug }: CompanyExplor
                 </h2>
               </div>
 
-              {activeCompany.assessment && (
-                <div className="px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 flex items-center gap-2 font-medium">
+              {activeCompany.assessments && activeCompany.assessments[0] && (
+                <Link
+                  href={`/dashboard/assessments/${activeCompany.assessments[0].slug}`}
+                  className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 border border-blue-200 text-xs text-blue-700 flex items-center gap-2 font-medium transition-colors"
+                >
                   <Clock className="w-4 h-4 text-blue-600" />
                   <span>
-                    OA Format: {activeCompany.assessment.durationMin}m ({activeCompany.assessment.totalQuestions} Questions)
+                    OA Simulation: {activeCompany.assessments[0].durationMin}m ({activeCompany.assessments[0].totalQuestions} Questions)
                   </span>
-                </div>
+                  <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                </Link>
               )}
             </div>
+
+            {/* Company-Focused Practice Assessments */}
+            {activeCompany.assessments && activeCompany.assessments.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Company-Focused Practice Assessments</span>
+                  </h3>
+                  <span className="text-xs font-medium text-slate-500">
+                    {activeCompany.assessments.length} Simulation{activeCompany.assessments.length > 1 ? 's' : ''} Available
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {activeCompany.assessments.map((a) => (
+                    <div
+                      key={a.id}
+                      className="p-4 rounded-xl bg-gradient-to-r from-blue-50/40 to-slate-50 border border-blue-100/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-subtle hover:border-blue-200 transition-colors"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-slate-900">{a.title}</span>
+                          <DifficultyBadge difficulty={a.difficulty} size="sm" />
+                        </div>
+                        {a.description && (
+                          <p className="text-xs text-slate-500 line-clamp-1 max-w-xl">
+                            {a.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 text-xs text-slate-500 pt-1 font-mono">
+                          <span>⏱ {a.durationMin} mins</span>
+                          <span>•</span>
+                          <span>📝 {a.totalQuestions} Questions ({a.sectionsCount} Sections)</span>
+                          <span>•</span>
+                          <span>🎯 {a.totalMarks} Points</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        {a.latestAttempt && (
+                          <div className="text-right">
+                            <span className="text-xs font-mono font-bold text-slate-800">
+                              Previous: {a.latestAttempt.scorePct}%
+                            </span>
+                            <div className="text-[10px] text-slate-400">
+                              {a.latestAttempt.passed ? '✓ Passed' : 'Needs Practice'}
+                            </div>
+                          </div>
+                        )}
+
+                        <Link
+                          href={`/dashboard/assessments/${a.slug}`}
+                          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
+                        >
+                          <span>{a.latestAttempt ? 'Retake / Review' : 'Start Assessment'}</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* High-Yield Assessment Patterns */}
             <div className="space-y-3">

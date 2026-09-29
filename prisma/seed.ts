@@ -8,6 +8,7 @@ import { ROADMAP_DATA, MODULES_DATA, TOPICS_DATA, LESSONS_DATA } from './seed-da
 import { ORIGINAL_PROBLEMS } from './seed-data/problems.js';
 import { COMPANIES_DATA } from './seed-data/companies.js';
 import { CORE_CS_QUIZZES } from './seed-data/quizzes.js';
+import { ASSESSMENTS_DATA } from './seed-data/assessments.js';
 
 const prisma = new PrismaClient();
 
@@ -466,7 +467,134 @@ async function seedCoreCS() {
 }
 
 // ----------------------------------------------------------------------------
-// 6. MAIN CONTROLLER
+// 6. SEED COMPANY PRACTICE ASSESSMENTS & SECTIONS
+// ----------------------------------------------------------------------------
+
+async function seedAssessments() {
+  console.log(`📌 Seeding ${ASSESSMENTS_DATA.length} Company Practice Assessments...`);
+
+  for (const assessData of ASSESSMENTS_DATA) {
+    const company = await prisma.company.findUnique({
+      where: { slug: assessData.companySlug },
+    });
+
+    if (!company) {
+      console.warn(`⚠️ Warning: Company "${assessData.companySlug}" not found. Skipping assessment "${assessData.slug}".`);
+      continue;
+    }
+
+    const totalQuestions = assessData.sections.reduce(
+      (acc, s) => acc + s.questions.length,
+      0
+    );
+
+    const assessment = await prisma.assessment.upsert({
+      where: { slug: assessData.slug },
+      update: {
+        companyId: company.id,
+        title: assessData.title,
+        description: assessData.description,
+        instructions: assessData.instructions,
+        durationMin: assessData.durationMin,
+        totalMarks: assessData.totalMarks,
+        totalQuestions,
+        passingScorePct: assessData.passingScorePct,
+        difficulty: assessData.difficulty as any,
+        status: 'PUBLISHED',
+        veracity: 'VERIFIED',
+      },
+      create: {
+        slug: assessData.slug,
+        companyId: company.id,
+        title: assessData.title,
+        description: assessData.description,
+        instructions: assessData.instructions,
+        durationMin: assessData.durationMin,
+        totalMarks: assessData.totalMarks,
+        totalQuestions,
+        passingScorePct: assessData.passingScorePct,
+        difficulty: assessData.difficulty as any,
+        status: 'PUBLISHED',
+        veracity: 'VERIFIED',
+      },
+    });
+
+    for (const secData of assessData.sections) {
+      const section = await prisma.assessmentSection.upsert({
+        where: {
+          assessmentId_orderIndex: {
+            assessmentId: assessment.id,
+            orderIndex: secData.orderIndex,
+          },
+        },
+        update: {
+          title: secData.title,
+          description: secData.description,
+          type: secData.type as any,
+          totalMarks: secData.totalMarks,
+        },
+        create: {
+          assessmentId: assessment.id,
+          title: secData.title,
+          description: secData.description,
+          type: secData.type as any,
+          orderIndex: secData.orderIndex,
+          totalMarks: secData.totalMarks,
+        },
+      });
+
+      for (const qData of secData.questions) {
+        let problemId: string | undefined = undefined;
+        let mcqQuestionId: string | undefined = undefined;
+
+        if (qData.type === 'CODING' && qData.problemSlug) {
+          const prob = await prisma.problem.findUnique({
+            where: { slug: qData.problemSlug },
+            select: { id: true },
+          });
+          problemId = prob?.id;
+        } else if (qData.type === 'MCQ' && qData.quizSlug && qData.quizQuestionOrderIndex) {
+          const mcq = await prisma.mCQQuestion.findFirst({
+            where: {
+              quiz: { slug: qData.quizSlug },
+              orderIndex: qData.quizQuestionOrderIndex,
+            },
+            select: { id: true },
+          });
+          mcqQuestionId = mcq?.id;
+        }
+
+        await prisma.assessmentQuestion.upsert({
+          where: {
+            sectionId_orderIndex: {
+              sectionId: section.id,
+              orderIndex: qData.orderIndex,
+            },
+          },
+          update: {
+            type: qData.type as any,
+            problemId,
+            mcqQuestionId,
+            marks: qData.marks,
+            negativeMarks: qData.negativeMarks,
+          },
+          create: {
+            sectionId: section.id,
+            type: qData.type as any,
+            problemId,
+            mcqQuestionId,
+            orderIndex: qData.orderIndex,
+            marks: qData.marks,
+            negativeMarks: qData.negativeMarks,
+          },
+        });
+      }
+    }
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 7. MAIN CONTROLLER
 // ----------------------------------------------------------------------------
 
 async function main() {
@@ -481,6 +609,7 @@ async function main() {
   await seedProblems(topicsMap);
   await seedCompanies();
   await seedCoreCS();
+  await seedAssessments();
 
   console.log('============================================================');
   console.log('✅ Master Database Seed Completed Successfully!');

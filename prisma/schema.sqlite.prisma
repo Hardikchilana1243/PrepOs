@@ -35,9 +35,9 @@ model User {
   topicProgress  TopicProgress[]
   roadmapProgress RoadmapProgress[]
   revisions      Revision[]
-  quizAttempts   QuizAttempt[]
-  oaAttempts     OAAttempt[]
-  dailyMissions  DailyMission[]
+  quizAttempts       QuizAttempt[]
+  assessmentAttempts AssessmentAttempt[]
+  dailyMissions      DailyMission[]
   streakEvents   StreakEvent[]
   progressEvents ProgressEvent[]
   readinessScore ReadinessScore?
@@ -193,10 +193,11 @@ model Problem {
   testCases       TestCase[]
   solutions       Solution[]
   companyProblems CompanyProblem[]
-  submissions     Submission[]
-  revisions       Revision[]
-  userProgress    UserProgress[]
-  bookmarks       Bookmark[]
+  submissions         Submission[]
+  revisions           Revision[]
+  userProgress        UserProgress[]
+  bookmarks           Bookmark[]
+  assessmentQuestions AssessmentQuestion[]
 
   @@index([slug, difficulty, status])
   @@index([topicId])
@@ -211,8 +212,9 @@ model TestCase {
   explanation String?
   orderIndex  Int      @default(0)
 
-  problem Problem     @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  executions Execution[]
+  problem              Problem               @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  executions           Execution[]
+  assessmentExecutions AssessmentExecution[]
 
   @@index([problemId, isSecret])
 }
@@ -249,7 +251,7 @@ model Company {
 
   patterns        CompanyPattern[]
   companyProblems CompanyProblem[]
-  assessments     CompanyAssessment[]
+  assessments     Assessment[]
 
   @@index([slug])
 }
@@ -285,36 +287,185 @@ model CompanyProblem {
   @@index([problemId])
 }
 
-model CompanyAssessment {
-  id             String   @id @default(cuid())
-  companyId      String
-  title          String
-  durationMin    Int      @default(90)
-  totalQuestions Int      @default(2)
-  veracity       String   @default("VERIFIED")
-  createdAt      DateTime @default(now())
+model Assessment {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  companyId       String
+  title           String
+  description     String?
+  instructions    String?
+  durationMin     Int      @default(90)
+  totalMarks      Float    @default(100.0)
+  totalQuestions  Int      @default(0)
+  passingScorePct Float    @default(60.0)
+  difficulty      String   @default("MEDIUM")
+  status          String   @default("PUBLISHED")
+  veracity        String   @default("VERIFIED")
+  orderIndex      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  oaAttempts OAAttempt[]
+  company  Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sections AssessmentSection[]
+  attempts AssessmentAttempt[]
 
   @@index([companyId])
+  @@index([slug, status])
+  @@index([status])
 }
 
-model OAAttempt {
-  id               String   @id @default(cuid())
+model AssessmentSection {
+  id           String   @id @default(cuid())
+  assessmentId String
+  title        String
+  description  String?
+  type         String   // CODING, CORE_CS
+  orderIndex   Int      @default(0)
+  timeLimitMin Int?
+  totalMarks   Float    @default(50.0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assessment    Assessment               @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  questions     AssessmentQuestion[]
+  sectionScores AssessmentSectionScore[]
+
+  @@unique([assessmentId, orderIndex])
+  @@index([assessmentId])
+}
+
+model AssessmentQuestion {
+  id            String   @id @default(cuid())
+  sectionId     String
+  type          String   // CODING, MCQ
+  problemId     String?
+  mcqQuestionId String?
+  orderIndex    Int      @default(0)
+  marks         Float    @default(10.0)
+  negativeMarks Float    @default(0.0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  section     AssessmentSection            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  problem     Problem?                     @relation(fields: [problemId], references: [id], onDelete: SetNull)
+  mcqQuestion MCQQuestion?                 @relation(fields: [mcqQuestionId], references: [id], onDelete: SetNull)
+  answers     AssessmentAnswer[]
+  submissions AssessmentCodingSubmission[]
+
+  @@unique([sectionId, orderIndex])
+  @@index([sectionId])
+  @@index([problemId])
+  @@index([mcqQuestionId])
+}
+
+model AssessmentAttempt {
+  id               String    @id @default(cuid())
   userId           String
   assessmentId     String
-  score            Int
-  totalQuestions   Int
-  passedQuestions  Int
-  durationTakenMin Int
-  completedAt      DateTime @default(now())
-  createdAt        DateTime @default(now())
+  attemptNumber    Int       @default(1)
+  status           String    @default("STARTED") // STARTED, IN_PROGRESS, SUBMITTED, EVALUATING, EVALUATED, EXPIRED, ABANDONED
+  startedAt        DateTime  @default(now())
+  expiresAt        DateTime
+  submittedAt      DateTime?
+  evaluatedAt      DateTime?
+  totalScore       Float     @default(0.0)
+  maxPossibleScore Float     @default(0.0)
+  scorePct         Float     @default(0.0)
+  passed           Boolean   @default(false)
+  durationTakenSec Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assessment CompanyAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  user          User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessment    Assessment                   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  answers       AssessmentAnswer[]
+  submissions   AssessmentCodingSubmission[]
+  sectionScores AssessmentSectionScore[]
 
   @@index([userId, assessmentId])
+  @@index([userId, status])
+  @@index([assessmentId, status])
+  @@index([expiresAt])
+  @@index([userId, createdAt])
+}
+
+model AssessmentAnswer {
+  id               String    @id @default(cuid())
+  attemptId        String
+  questionId       String
+  selectedOptionId String?
+  codeDraft        String?
+  codeLanguage     String?
+  isCorrect        Boolean?
+  marksAwarded     Float     @default(0.0)
+  evaluatedAt      DateTime?
+  lastSavedAt      DateTime  @default(now())
+
+  attempt        AssessmentAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption QuestionOption?    @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+}
+
+model AssessmentCodingSubmission {
+  id            String   @id @default(cuid())
+  attemptId     String
+  questionId    String
+  language      String
+  code          String
+  status        String
+  passedTests   Int      @default(0)
+  totalTests    Int      @default(0)
+  executionTime Int?
+  memoryKb      Int?
+  errorLog      String?
+  marksEarned   Float    @default(0.0)
+  createdAt     DateTime @default(now())
+
+  attempt    AssessmentAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question   AssessmentQuestion    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  executions AssessmentExecution[]
+
+  @@index([attemptId, questionId])
+  @@index([attemptId, createdAt])
+}
+
+model AssessmentExecution {
+  id              String   @id @default(cuid())
+  submissionId    String
+  testCaseId      String
+  status          String
+  actualOutput    String?
+  executionTimeMs Int?
+  memoryKb        Int?
+  createdAt       DateTime @default(now())
+
+  submission AssessmentCodingSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testCase   TestCase                   @relation(fields: [testCaseId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+}
+
+model AssessmentSectionScore {
+  id                 String   @id @default(cuid())
+  attemptId          String
+  sectionId          String
+  score              Float    @default(0.0)
+  maxScore           Float    @default(0.0)
+  scorePct           Float    @default(0.0)
+  questionsAttempted Int      @default(0)
+  questionsCorrect   Int      @default(0)
+  totalQuestions     Int      @default(0)
+  createdAt          DateTime @default(now())
+
+  attempt AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  section AssessmentSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, sectionId])
+  @@index([attemptId])
 }
 
 // ----------------------------------------------------------------------------
@@ -362,9 +513,10 @@ model MCQQuestion {
   orderIndex   Int      @default(0)
   createdAt    DateTime @default(now())
 
-  quiz        CoreCSQuiz       @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  options     QuestionOption[]
-  quizAnswers QuizAnswer[]
+  quiz                CoreCSQuiz           @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options             QuestionOption[]
+  quizAnswers         QuizAnswer[]
+  assessmentQuestions AssessmentQuestion[]
 
   @@index([quizId])
 }
@@ -376,8 +528,9 @@ model QuestionOption {
   isCorrect  Boolean  @default(false)
   orderIndex Int      @default(0)
 
-  question    MCQQuestion  @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  quizAnswers QuizAnswer[]
+  question          MCQQuestion        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  quizAnswers       QuizAnswer[]
+  assessmentAnswers AssessmentAnswer[]
 
   @@index([questionId])
 }
@@ -398,6 +551,7 @@ model QuizAttempt {
   answers QuizAnswer[]
 
   @@index([userId, quizId])
+  @@index([userId, completedAt])
 }
 
 model QuizAnswer {
@@ -439,6 +593,7 @@ model Submission {
 
   @@index([userId, problemId, status])
   @@index([createdAt])
+  @@index([userId, problemId, createdAt])
 }
 
 model Execution {
@@ -476,6 +631,7 @@ model UserProgress {
 
   @@unique([userId, problemId])
   @@index([userId, isSolved])
+  @@index([userId, isSolved, problemId])
 }
 
 model TopicProgress {
@@ -544,6 +700,7 @@ model Revision {
 
   @@unique([userId, problemId])
   @@index([userId, dueAt, completedAt])
+  @@index([userId, completedAt, dueAt])
 }
 
 model StreakEvent {

@@ -48,11 +48,38 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
           },
         },
         assessments: {
-          take: 1,
+          where: { status: 'PUBLISHED' },
+          orderBy: { orderIndex: 'asc' },
           select: {
+            id: true,
+            slug: true,
             title: true,
+            description: true,
             durationMin: true,
+            totalMarks: true,
             totalQuestions: true,
+            difficulty: true,
+            sections: {
+              select: {
+                id: true,
+                title: true,
+                type: true,
+                totalMarks: true,
+              },
+            },
+            attempts: {
+              where: { userId: user.id },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                status: true,
+                scorePct: true,
+                totalScore: true,
+                maxPossibleScore: true,
+                passed: true,
+              },
+            },
           },
         },
         companyProblems: {
@@ -96,13 +123,25 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
       difficulty: cp.problem.difficulty,
       isSolved: solvedSet.has(cp.problem.id),
     })),
-    assessment: comp.assessments[0]
-      ? {
-          title: comp.assessments[0].title,
-          durationMin: comp.assessments[0].durationMin,
-          totalQuestions: comp.assessments[0].totalQuestions,
-        }
-      : null,
+    assessments: comp.assessments.map((a) => ({
+      id: a.id,
+      slug: a.slug,
+      title: a.title,
+      description: a.description,
+      durationMin: a.durationMin,
+      totalMarks: a.totalMarks,
+      totalQuestions: a.totalQuestions,
+      difficulty: a.difficulty,
+      sectionsCount: a.sections.length,
+      latestAttempt: a.attempts[0]
+        ? {
+            id: a.attempts[0].id,
+            status: a.attempts[0].status,
+            scorePct: a.attempts[0].scorePct,
+            passed: a.attempts[0].passed,
+          }
+        : null,
+    })),
   }));
 
   return (

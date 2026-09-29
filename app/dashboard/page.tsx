@@ -5,45 +5,81 @@ import {
   getPrimaryDashboardData,
   getPreparationPillarsData,
 } from '@/lib/services/dashboard';
-import { ReadinessCard } from '@/components/dashboard/readiness-card';
+import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { TodayMissionCard } from '@/components/dashboard/today-mission-card';
+import { ReadinessCard } from '@/components/dashboard/readiness-card';
 import { DSAProgressCard } from '@/components/dashboard/dsa-progress-card';
 import { CoreCSCard } from '@/components/dashboard/core-cs-card';
 import { CompanyCard } from '@/components/dashboard/company-card';
 import { RevisionCard } from '@/components/dashboard/revision-card';
+import { DiagnosticFocusCard } from '@/components/dashboard/diagnostic-focus-card';
+import { QuickActionsBar } from '@/components/dashboard/quick-actions-bar';
 import { toggleMissionAction } from './actions';
-import { Flame, GraduationCap, Code } from 'lucide-react';
+import { PRSComponents } from '@/lib/services/readiness-score';
 
 export const dynamic = 'force-dynamic';
 
-async function PreparationPillarsSection({ userId }: { userId: string }) {
+async function PreparationPillarsSection({
+  userId,
+  readiness,
+}: {
+  userId: string;
+  readiness: PRSComponents;
+}) {
   const pillars = await getPreparationPillarsData(userId);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <DSAProgressCard dsaProgress={pillars.dsaProgress} />
-      <CoreCSCard coreCsProgress={pillars.coreCsProgress} />
-      <RevisionCard revisionSummary={pillars.revisionSummary} />
-      <CompanyCard companies={pillars.companyHighlights} />
+    <div className="space-y-6">
+      {/* 4 Preparation Pillars Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <DSAProgressCard dsaProgress={pillars.dsaProgress} />
+        <CoreCSCard coreCsProgress={pillars.coreCsProgress} />
+        <RevisionCard revisionSummary={pillars.revisionSummary} />
+        <CompanyCard companies={pillars.companyHighlights} />
+      </div>
+
+      {/* Diagnostic Focus / Weak Areas / Recommended Next Action */}
+      <DiagnosticFocusCard
+        readiness={readiness}
+        dsaProgress={pillars.dsaProgress}
+        coreCsProgress={pillars.coreCsProgress}
+        revisionSummary={pillars.revisionSummary}
+      />
     </div>
   );
 }
 
 function PreparationPillarsFallback() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-pulse">
-      {[1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="bg-white rounded-2xl border border-slate-200/90 p-5 h-48 flex flex-col justify-between shadow-sm"
-        >
-          <div className="space-y-3">
-            <div className="h-4 w-28 bg-slate-100 rounded" />
-            <div className="h-7 w-20 bg-slate-100 rounded" />
-            <div className="h-2 w-full bg-slate-100 rounded-full" />
+    <div className="space-y-6 animate-pulse">
+      {/* 4 Pillars Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div
+            key={i}
+            className="bg-white rounded-xl border border-slate-200/90 p-5 h-52 flex flex-col justify-between shadow-2xs"
+          >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-28 bg-slate-100 rounded" />
+                <div className="h-4 w-12 bg-slate-100 rounded" />
+              </div>
+              <div className="h-2 w-full bg-slate-100 rounded-full" />
+              <div className="h-10 bg-slate-50 rounded-lg mt-4" />
+            </div>
+            <div className="h-4 w-24 bg-slate-100 rounded" />
           </div>
-          <div className="h-10 bg-slate-50 border border-slate-100 rounded-xl" />
+        ))}
+      </div>
+
+      {/* Focus Action Skeleton */}
+      <div className="bg-white rounded-xl border border-slate-200/90 p-5 h-24 shadow-2xs flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="h-3 w-36 bg-slate-100 rounded" />
+          <div className="h-4 w-64 bg-slate-100 rounded" />
         </div>
-      ))}
+        <div className="h-8 w-28 bg-slate-100 rounded-lg" />
+      </div>
     </div>
   );
 }
@@ -55,68 +91,52 @@ export default async function DashboardPage() {
     redirect('/auth/sign-in');
   }
 
-  // Primary level 1 action & PRS readiness (fast, prioritized server payload)
+  // Primary server payload: fast, prioritized level 1 action & readiness index
   const primaryData = await getPrimaryDashboardData(user.id);
   const { profile, readiness, todayMissions } = primaryData;
 
-  const firstName = user.name ? user.name.split(' ')[0] : 'Candidate';
-
   return (
-    <div className="space-y-6">
-      {/* 1. Student Greeting & Context */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
-            Good day, {firstName} 👋
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Let&apos;s make some progress today.
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* 1. TOP: Student Context & Workspace Header */}
+      <DashboardHeader userName={user.name} profile={profile} />
 
-        {/* Student Profile Quick Attributes */}
-        {profile && (
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200/90 text-xs text-slate-600 shadow-subtle">
-              <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
-              <span>Class of {profile.gradYear}</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200/90 text-xs text-slate-600 shadow-subtle">
-              <Code className="w-3.5 h-3.5 text-slate-500" />
-              <span>{profile.preferredLang}</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-700">
-              <Flame className="w-3.5 h-3.5 text-amber-500" />
-              <span>{profile.streakDays} Day Streak</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 2. Level 1: Action (Today's Plan) & Level 2: Compact Readiness (PRS) */}
+      {/* 2. PRIMARY & SECONDARY: Today's Mission & Placement Readiness */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-        <div className="lg:col-span-7">
+        {/* Primary Action (Dominant width & prominence) */}
+        <div className="lg:col-span-7 xl:col-span-8 flex flex-col">
           <TodayMissionCard
             missions={todayMissions}
             onToggleMission={toggleMissionAction}
           />
         </div>
-        <div className="lg:col-span-5">
+
+        {/* Secondary: Readiness Index & Diagnostic Breakdown */}
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col">
           <ReadinessCard readiness={readiness} />
         </div>
       </div>
 
-      {/* 3. Level 2: Pillars of Preparation (DSA, Core CS, Revision, Companies) */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">
+      {/* 3. PREPARATION PILLARS & DIAGNOSTIC FOCUS */}
+      <section aria-labelledby="pillars-heading" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2
+            id="pillars-heading"
+            className="text-xs font-bold uppercase tracking-wider text-slate-500"
+          >
             Preparation Pillars
           </h2>
+          <span className="text-xs text-slate-400">
+            Curriculum tracking across Core CS, DSA, and OAs
+          </span>
         </div>
+
         <Suspense fallback={<PreparationPillarsFallback />}>
-          <PreparationPillarsSection userId={user.id} />
+          <PreparationPillarsSection userId={user.id} readiness={readiness} />
         </Suspense>
-      </div>
+      </section>
+
+      {/* 4. WORKSPACE SHORTCUTS */}
+      <QuickActionsBar />
     </div>
   );
 }

@@ -4,6 +4,7 @@
 // ============================================================================
 
 import prisma from '../db';
+import { normalizeUtcMidnight } from '../utils/date';
 
 export interface MissionItem {
   id: string;
@@ -17,8 +18,7 @@ export interface MissionItem {
 
 export async function getOrCreateDailyMissions(userId: string): Promise<MissionItem[]> {
   // Normalize today's date to midnight UTC to ensure idempotent daily grouping
-  const now = new Date();
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const today = normalizeUtcMidnight();
 
   // 1. Check if missions already exist for today
   const existingMissions = await prisma.dailyMission.findMany({

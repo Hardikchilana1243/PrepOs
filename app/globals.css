@@ -3,18 +3,74 @@
 @tailwind utilities;
 
 :root {
+  /* Surface & Canvas Tokens */
+  --bg-app: #F8FAFC;
+  --surface-card: #FFFFFF;
+  --surface-muted: #F1F5F9;
+  --surface-hover: #F8FAFC;
+  
+  /* Border Tokens */
+  --border-subtle: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --border-focus: #2563EB;
+  
+  /* Typography Tokens */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  
+  /* Brand Tokens (Restrained Electric Blue) */
+  --brand-primary: #2563EB;
+  --brand-primary-hover: #1D4ED8;
+  --brand-primary-light: #EFF6FF;
+  --brand-primary-border: #BFDBFE;
+  
+  /* Semantic Tokens */
+  --semantic-success: #059669;
+  --semantic-success-light: #ECFDF5;
+  --semantic-success-border: #A7F3D0;
+  
+  --semantic-warning: #D97706;
+  --semantic-warning-light: #FFFBEB;
+  --semantic-warning-border: #FDE68A;
+  
+  --semantic-danger: #E11D48;
+  --semantic-danger-light: #FFF1F2;
+  --semantic-danger-border: #FECDD3;
+
+  /* Legacy Compat */
   --background: #F8FAFC;
-  --foreground: #111827;
+  --foreground: #0F172A;
   --surface: #FFFFFF;
   --border: #E2E8F0;
 }
 
 body {
-  background-color: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg-app);
+  color: var(--text-primary);
   font-feature-settings: "rlig" 1, "calt" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Accessible Global Focus Ring Utility */
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2;
+}
+
+/* Inline Code Snippet Styling */
+.code-inline {
+  @apply font-mono text-[12px] bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded border border-slate-200/80 font-medium;
+}
+
+/* Technical Specification Callout Box */
+.tech-callout {
+  @apply border-l-2 border-blue-500 bg-blue-50/50 p-3 rounded-r-lg text-xs text-slate-700 leading-relaxed;
+}
+
+/* Mobile Touch Target Ergonomics */
+.touch-target {
+  @apply min-h-[44px] min-w-[44px];
 }
 
 /* Application Light Scrollbars */
@@ -51,4 +107,14 @@ body {
 .dark-workspace ::-webkit-scrollbar-thumb:hover,
 .workspace-scroll::-webkit-scrollbar-thumb:hover {
   background: #374151;
+}
+
+/* Reduced Motion Preference Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

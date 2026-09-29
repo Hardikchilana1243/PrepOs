@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Cpu, ArrowRight } from 'lucide-react';
+import { Cpu, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { ProgressBar } from '@/components/ui/student-os';
 
 interface CoreCSCardProps {
@@ -21,15 +21,15 @@ export function CoreCSCard({ coreCsProgress }: CoreCSCardProps) {
   const progressPct = totalQuizzes > 0 ? Math.round((attemptedCount / totalQuizzes) * 100) : 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 p-5 shadow-sm flex flex-col justify-between">
+    <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-xs flex flex-col justify-between hover:border-slate-300 transition-colors">
       <div>
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-md bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <Cpu className="w-4 h-4" />
             </div>
-            <h3 className="text-sm font-semibold text-slate-900 tracking-tight">
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight">
               Core CS Drills
             </h3>
           </div>
@@ -38,24 +38,31 @@ export function CoreCSCard({ coreCsProgress }: CoreCSCardProps) {
           </span>
         </div>
 
-        {/* Progress Bar */}
+        {/* Progress Bar & Avg Accuracy */}
         <div className="mt-3">
           <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-            <span>Quizzes Completed</span>
-            <span className="font-semibold text-slate-800">{progressPct}%</span>
+            <span>Completed Drills</span>
+            <div className="flex items-center gap-1.5 font-mono">
+              <span className="font-semibold text-slate-800">{progressPct}%</span>
+              {attemptedCount > 0 && (
+                <span className="text-[10px] text-indigo-600 font-semibold bg-indigo-50 px-1.5 py-0.2 rounded border border-indigo-100">
+                  {averageScore}% avg
+                </span>
+              )}
+            </div>
           </div>
-          <ProgressBar value={progressPct} size="md" color="indigo" />
+          <ProgressBar value={progressPct} size="sm" color="indigo" />
         </div>
 
-        {/* Next Recommendation */}
+        {/* Next Diagnostic Drill */}
         <div className="mt-4 pt-3 border-t border-slate-100">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
             Next Diagnostic Drill
           </div>
           {nextQuiz ? (
             <Link
               href={`/dashboard/core-cs?quiz=${nextQuiz.slug}`}
-              className="group block p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/50 transition-all"
+              className="group block p-2 rounded-lg bg-slate-50 border border-slate-200/80 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold text-slate-800 group-hover:text-indigo-700 truncate">
@@ -67,8 +74,9 @@ export function CoreCSCard({ coreCsProgress }: CoreCSCardProps) {
               </div>
             </Link>
           ) : (
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
-              No pending drills
+            <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100 text-xs text-emerald-700 flex items-center gap-1.5 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              <span>All quizzes completed!</span>
             </div>
           )}
         </div>
@@ -77,9 +85,9 @@ export function CoreCSCard({ coreCsProgress }: CoreCSCardProps) {
       <div className="mt-4 pt-3 border-t border-slate-100">
         <Link
           href="/dashboard/core-cs"
-          className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center justify-between group"
+          className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center justify-between group transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded"
         >
-          <span>All Core CS Quizzes</span>
+          <span>Open Core CS Hub</span>
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>

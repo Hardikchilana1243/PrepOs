@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { AlertCircle, RotateCcw, Home } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/student-os';
 
 export default function DashboardError({
   error,
@@ -16,31 +17,33 @@ export default function DashboardError({
   }, [error]);
 
   return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center p-6">
-      <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mb-4">
-        <AlertCircle className="w-7 h-7" />
+    <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 max-w-md mx-auto">
+      <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mb-4">
+        <AlertCircle className="w-6 h-6" />
       </div>
 
-      <h2 className="text-xl font-bold text-white tracking-tight">
-        Failed to load dashboard
+      <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+        Failed to load dashboard workspace
       </h2>
-      <p className="text-xs text-slate-400 max-w-md mt-1.5 leading-relaxed">
-        An error occurred while compiling your live placement readiness metrics.
+      <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+        An error occurred while compiling your live placement readiness metrics. Your saved progress is intact.
       </p>
 
       <div className="flex items-center gap-3 mt-6">
-        <button
+        <Button
           onClick={() => reset()}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-md shadow-blue-500/20"
+          size="sm"
+          variant="primary"
+          leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
         >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>Retry Loading</span>
-        </button>
+          Retry Loading
+        </Button>
+
         <Link
           href="/"
-          className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs font-semibold flex items-center gap-2 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
         >
-          <Home className="w-3.5 h-3.5" />
+          <Home className="w-3.5 h-3.5 text-slate-400" />
           <span>Home</span>
         </Link>
       </div>

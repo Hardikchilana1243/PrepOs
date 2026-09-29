@@ -35,6 +35,12 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // Distraction-free exam mode: bypass standard application shell during active assessment attempts
+  const isExamMode = pathname.includes('/assessments/') && pathname.includes('/attempt/') && !pathname.includes('/result');
+  if (isExamMode) {
+    return <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">{children}</div>;
+  }
+
   // Global keyboard shortcut: ⌘K / Ctrl+K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -159,17 +165,18 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700 font-semibold shadow-subtle'
+                      ? 'bg-blue-50/80 text-blue-700 font-semibold shadow-xs border border-blue-100/80'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
                   }`}
                 >
                   <Icon
-                    className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}
+                    className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}
                   />
-                  <span>{item.name}</span>
-                  {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-blue-500" />}
+                  <span className="truncate">{item.name}</span>
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-blue-500 shrink-0" />}
                 </Link>
               );
             })}
@@ -185,16 +192,17 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                       isActive
-                        ? 'bg-blue-50 text-blue-700 font-semibold shadow-subtle'
+                        ? 'bg-blue-50/80 text-blue-700 font-semibold shadow-xs border border-blue-100/80'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
                     }`}
                   >
                     <Icon
-                      className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}
+                      className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}
                     />
-                    <span>{item.name}</span>
+                    <span className="truncate">{item.name}</span>
                   </Link>
                 );
               })}
@@ -277,7 +285,7 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
       </div>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md px-3 py-1 flex justify-around items-center sticky bottom-0 z-30 shadow-lg">
+      <nav aria-label="Mobile Navigation" className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md px-2 py-1 flex justify-around items-center sticky bottom-0 z-30 shadow-subtle">
         {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -287,12 +295,13 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex flex-col items-center py-1.5 px-3 rounded-lg text-[10px] font-medium transition-colors ${
+              aria-current={isActive ? 'page' : undefined}
+              className={`flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-2 rounded-lg text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 isActive ? 'text-blue-600 font-semibold' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
               <Icon className={`w-5 h-5 mb-0.5 ${isActive ? 'text-blue-600' : 'text-slate-400'}`} />
-              <span>{item.name}</span>
+              <span className="leading-tight">{item.name}</span>
             </Link>
           );
         })}
