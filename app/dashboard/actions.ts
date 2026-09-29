@@ -66,7 +66,7 @@ export async function getQuizAttemptReviewAction(
 
 export async function recordRevisionReviewAction(
   revisionId: string,
-  confidence: 'HARD' | 'GOOD' | 'EASY'
+  confidence: 'AGAIN' | 'HARD' | 'GOOD' | 'EASY'
 ) {
   const user = await getSessionUser();
   if (!user) {
@@ -76,6 +76,7 @@ export async function recordRevisionReviewAction(
   const result = await recordRevisionReview(user.id, revisionId, confidence);
   revalidatePath('/dashboard');
   revalidatePath('/dashboard/revision');
+  revalidatePath('/dashboard/profile');
 
   return result;
 }

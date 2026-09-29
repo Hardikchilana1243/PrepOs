@@ -90,6 +90,11 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
                 slug: true,
                 title: true,
                 difficulty: true,
+                topic: {
+                  select: {
+                    title: true,
+                  },
+                },
               },
             },
           },
@@ -121,6 +126,7 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
       slug: cp.problem.slug,
       title: cp.problem.title,
       difficulty: cp.problem.difficulty,
+      topicTitle: cp.problem.topic.title,
       isSolved: solvedSet.has(cp.problem.id),
     })),
     assessments: comp.assessments.map((a) => ({
@@ -146,12 +152,6 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Company Placement Hubs"
-        subtitle="Deconstruct verified interview patterns, hiring trends, and mapped algorithmic problems across top software engineering recruiters."
-        tag="Level 3 — Context & Companies"
-      />
-
       <CompanyExplorer
         companies={formattedCompanies}
         initialCompanySlug={searchParams.company}

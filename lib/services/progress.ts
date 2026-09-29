@@ -456,7 +456,7 @@ export async function getQuizAttemptReview(
 export async function recordRevisionReview(
   userId: string,
   revisionId: string,
-  confidence: 'HARD' | 'GOOD' | 'EASY'
+  confidence: 'AGAIN' | 'HARD' | 'GOOD' | 'EASY'
 ) {
   const revision = await prisma.revision.findFirst({
     where: { id: revisionId, userId },
@@ -468,7 +468,9 @@ export async function recordRevisionReview(
   }
 
   let nextIntervalDays: number;
-  if (confidence === 'HARD') {
+  if (confidence === 'AGAIN') {
+    nextIntervalDays = 1;
+  } else if (confidence === 'HARD') {
     nextIntervalDays = 2;
   } else if (confidence === 'GOOD') {
     nextIntervalDays = Math.max(7, Math.round(revision.intervalDays * 1.5));

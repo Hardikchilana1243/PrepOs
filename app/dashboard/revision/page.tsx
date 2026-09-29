@@ -2,8 +2,7 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { RevisionQueue } from '@/components/revision/revision-queue';
-import { PageHeader } from '@/components/ui/student-os';
+import { RevisionQueue, RevisionQueueItem } from '@/components/revision/revision-queue';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +13,7 @@ export default async function RevisionPage() {
     redirect('/auth/sign-in');
   }
 
-  // Fetch all revisions and Core CS mistakes in parallel
+  // Fetch all revisions and Core CS mistakes in parallel with explicit projections
   const [revisions, incorrectAnswers] = await Promise.all([
     prisma.revision.findMany({
       where: { userId: user.id },
@@ -30,6 +29,10 @@ export default async function RevisionPage() {
             title: true,
             slug: true,
             difficulty: true,
+            statement: true,
+            hints: true,
+            expectedTimeComplexity: true,
+            expectedSpaceComplexity: true,
             topic: {
               select: {
                 title: true,
@@ -47,6 +50,7 @@ export default async function RevisionPage() {
         attempt: { userId: user.id },
       },
       select: {
+        id: true,
         questionId: true,
         attempt: {
           select: {
@@ -67,6 +71,7 @@ export default async function RevisionPage() {
           select: {
             id: true,
             questionText: true,
+            explanation: true,
             orderIndex: true,
           },
         },
@@ -78,10 +83,13 @@ export default async function RevisionPage() {
 
   const { findTopicForQuestion } = await import('@/lib/services/core-cs-curriculum');
 
+  // De-duplicate Core CS mistakes
   const questionMissMap = new Map<
     string,
     {
+      id: string;
       questionText: string;
+      explanation: string;
       topicTitle: string;
       subjectTitle: string;
       subjectSlug: string;
@@ -103,7 +111,9 @@ export default async function RevisionPage() {
       }
     } else {
       questionMissMap.set(qId, {
+        id: ans.id,
         questionText: ans.question.questionText,
+        explanation: ans.question.explanation,
         topicTitle: topic?.title || 'Core CS Foundations',
         subjectTitle: ans.attempt.quiz.subject.title,
         subjectSlug: sSlug,
@@ -113,55 +123,82 @@ export default async function RevisionPage() {
     }
   }
 
-  const coreCsMistakes = Array.from(questionMissMap.entries())
-    .sort((a, b) => b[1].missCount - a[1].missCount)
-    .slice(0, 6)
-    .map(([id, info]) => ({
-      id,
-      questionText: info.questionText,
-      topicTitle: info.topicTitle,
-      subjectTitle: info.subjectTitle,
-      subjectSlug: info.subjectSlug,
-      missedTimes: info.missCount,
-      lastMissedAt: new Date(info.lastDate).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      }),
-    }));
-
   const now = new Date();
 
-  const formattedRevisions = revisions.map((rev) => {
-    const isDue = rev.dueAt <= now && rev.completedAt === null;
+  // Format DSA spaced revisions
+  const dsaItems: RevisionQueueItem[] = revisions.map((rev) => {
+    const dueDate = new Date(rev.dueAt);
+    const isDue = dueDate <= now && rev.completedAt === null;
+    const diffMs = now.getTime() - dueDate.getTime();
+    const daysOverdue = isDue && diffMs > 86400000 ? Math.floor(diffMs / (1000 * 60 * 60 * 24)) : 0;
+
+    let parsedHints: string[] = [];
+    const rawHints: unknown = rev.problem.hints;
+    if (Array.isArray(rawHints)) {
+      parsedHints = rawHints.map(String);
+    } else if (typeof rawHints === 'string') {
+      try {
+        const parsed = JSON.parse(rawHints);
+        if (Array.isArray(parsed)) parsedHints = parsed.map(String);
+        else if (parsed) parsedHints = [String(parsed)];
+      } catch {
+        parsedHints = [rawHints];
+      }
+    }
+
     return {
       id: rev.id,
+      sourceType: 'DSA',
       problemId: rev.problem.id,
       problemTitle: rev.problem.title,
       problemSlug: rev.problem.slug,
       difficulty: rev.problem.difficulty,
       topicTitle: rev.problem.topic.title,
+      statement: rev.problem.statement,
+      hints: parsedHints,
+      expectedTimeComplexity: rev.problem.expectedTimeComplexity,
+      expectedSpaceComplexity: rev.problem.expectedSpaceComplexity,
       intervalDays: rev.intervalDays,
       confidence: rev.confidence,
-      dueAt: new Date(rev.dueAt).toLocaleDateString('en-US', {
+      dueAt: dueDate.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
       }),
+      dueAtRaw: rev.dueAt.toISOString(),
       isDue,
+      daysOverdue,
+      completedAt: rev.completedAt ? rev.completedAt.toISOString() : null,
     };
   });
 
+  // Format Core CS review items
+  const coreCsItems: RevisionQueueItem[] = Array.from(questionMissMap.values())
+    .sort((a, b) => b.missCount - a.missCount)
+    .slice(0, 10)
+    .map((info) => ({
+      id: `cs-review-${info.id}`,
+      sourceType: 'CORE_CS',
+      problemTitle: info.questionText,
+      topicTitle: info.topicTitle,
+      subjectTitle: info.subjectTitle,
+      explanation: info.explanation,
+      intervalDays: 1,
+      confidence: 'REVIEW_NEEDED',
+      dueAt: new Date(info.lastDate).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      }),
+      dueAtRaw: info.lastDate.toISOString(),
+      isDue: true,
+      daysOverdue: 0,
+      completedAt: null,
+    }));
+
+  const initialItems: RevisionQueueItem[] = [...dsaItems, ...coreCsItems];
+
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Spaced Repetition Revision"
-        subtitle="Automated recall intervals ensure algorithmic concepts and core CS topics stay fresh until your technical assessments."
-        tag="Level 1 & 2 — Active Recall"
-      />
-
-      <RevisionQueue
-        revisions={formattedRevisions}
-        coreCsMistakes={coreCsMistakes}
-      />
+      <RevisionQueue initialItems={initialItems} />
     </div>
   );
 }

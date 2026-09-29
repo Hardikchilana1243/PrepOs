@@ -6,17 +6,13 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Sparkles,
   ArrowLeft,
   RotateCcw,
   BookOpen,
-  Filter,
-  ChevronDown,
-  ChevronUp,
   AlertTriangle,
-  Lightbulb,
 } from 'lucide-react';
-import { QuizSubmissionResult, GradedQuestionReview } from '@/lib/services/progress';
+import { QuizSubmissionResult } from '@/lib/services/progress';
+import { ExplanationPanel } from './explanation-panel';
 
 interface QuizResultsProps {
   result: QuizSubmissionResult;
@@ -26,18 +22,6 @@ interface QuizResultsProps {
 
 export function QuizResults({ result, onExit, onRetake }: QuizResultsProps) {
   const [filterMode, setFilterMode] = useState<'ALL' | 'INCORRECT'>('ALL');
-  const [expandedQuestions, setExpandedQuestions] = useState<Record<string, boolean>>(() => {
-    // Default expand incorrect questions
-    const initial: Record<string, boolean> = {};
-    result.gradedQuestions.forEach((q) => {
-      if (!q.isCorrect) initial[q.questionId] = true;
-    });
-    return initial;
-  });
-
-  const toggleExpand = (qId: string) => {
-    setExpandedQuestions((prev) => ({ ...prev, [qId]: !prev[qId] }));
-  };
 
   const incorrectQuestions = result.gradedQuestions.filter((q) => !q.isCorrect);
   const displayedQuestions =
@@ -52,8 +36,9 @@ export function QuizResults({ result, onExit, onRetake }: QuizResultsProps) {
       {/* Top Breadcrumb & Return Action */}
       <div className="flex items-center justify-between">
         <button
+          type="button"
           onClick={onExit}
-          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-subtle transition-all"
+          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-1.5 shadow-2xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Core CS Hub</span>
@@ -61,8 +46,9 @@ export function QuizResults({ result, onExit, onRetake }: QuizResultsProps) {
 
         {onRetake && (
           <button
+            type="button"
             onClick={onRetake}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 flex items-center gap-1.5 transition-all"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 flex items-center gap-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Retake Drill</span>
@@ -71,26 +57,26 @@ export function QuizResults({ result, onExit, onRetake }: QuizResultsProps) {
       </div>
 
       {/* Main Score & Performance Banner */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-6 md:p-8 shadow-sm space-y-6">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-100 pb-6">
-          <div className="flex items-center gap-4">
+      <div className="bg-white rounded-xl border border-slate-200/90 p-5 sm:p-6 shadow-xs space-y-5">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-5 border-b border-slate-100 pb-5">
+          <div className="flex items-start sm:items-center gap-4">
             <div
-              className={`w-16 h-16 rounded-2xl flex items-center justify-center border shrink-0 ${
+              className={`w-14 h-14 rounded-xl flex items-center justify-center border shrink-0 ${
                 result.passed
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
                   : 'bg-amber-50 border-amber-200 text-amber-600'
               }`}
             >
-              <Award className="w-8 h-8" />
+              <Award className="w-7 h-7" />
             </div>
 
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-blue-600">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
                   {result.subjectTitle}
                 </span>
                 <span
-                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded border ${
                     result.passed
                       ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                       : 'bg-amber-50 border-amber-200 text-amber-700'
@@ -99,44 +85,50 @@ export function QuizResults({ result, onExit, onRetake }: QuizResultsProps) {
                   {result.passed ? 'Screening Benchmark Cleared' : 'Needs Review'}
                 </span>
               </div>
-              <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight mt-1">
-                {result.quizTitle} Diagnostic Results
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight mt-1">
+                {result.quizTitle} Results
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Official server-graded technical assessment • PRS 30% Core CS calibrated
+                Evaluated server-side • 30% Core CS placement readiness index updated
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4 bg-slate-50 border border-slate-200/80 rounded-2xl p-4 shrink-0 font-mono">
+          {/* Metric Badges */}
+          <div className="flex items-center gap-3 bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 shrink-0 font-mono text-xs">
             <div className="text-center px-2">
-              <div className="text-2xl font-bold text-slate-900">{result.scorePercentage}%</div>
-              <div className="text-[10px] text-slate-500 uppercase mt-0.5">Accuracy</div>
+              <div className="text-xl sm:text-2xl font-bold text-slate-900">
+                {result.scorePercentage}%
+              </div>
+              <div className="text-[10px] text-slate-400 uppercase">Accuracy</div>
             </div>
-            <div className="h-8 w-px bg-slate-200" />
+            <div className="h-7 w-px bg-slate-200" />
             <div className="text-center px-2">
-              <div className="text-2xl font-bold text-emerald-600">
+              <div className="text-xl sm:text-2xl font-bold text-emerald-600">
                 {result.correctQuestions} / {result.totalQuestions}
               </div>
-              <div className="text-[10px] text-slate-500 uppercase mt-0.5">Correct MCQs</div>
+              <div className="text-[10px] text-slate-400 uppercase">Correct</div>
             </div>
-            <div className="h-8 w-px bg-slate-200" />
+            <div className="h-7 w-px bg-slate-200" />
             <div className="text-center px-2">
-              <div className="text-2xl font-bold text-slate-700">{timeFormatted}</div>
-              <div className="text-[10px] text-slate-500 uppercase mt-0.5">Elapsed Time</div>
+              <div className="text-xl sm:text-2xl font-bold text-slate-700">
+                {timeFormatted}
+              </div>
+              <div className="text-[10px] text-slate-400 uppercase">Time</div>
             </div>
           </div>
         </div>
 
-        {/* Dynamic Strong vs Needs Review Topics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/80 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-emerald-800 uppercase tracking-wide">
+        {/* Dynamic Strengths vs Weak Topics */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Demonstrated Strengths */}
+          <div className="p-3.5 rounded-lg bg-emerald-50/50 border border-emerald-200/70 space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-800 uppercase tracking-wide">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" />
               <span>Demonstrated Strengths</span>
             </div>
             {result.strongTopics.length > 0 ? (
-              <ul className="space-y-1.5 text-xs text-emerald-950 font-medium">
+              <ul className="space-y-1 text-xs text-emerald-950 font-medium">
                 {result.strongTopics.map((topic, i) => (
                   <li key={i} className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -146,18 +138,19 @@ export function QuizResults({ result, onExit, onRetake }: QuizResultsProps) {
               </ul>
             ) : (
               <p className="text-xs text-emerald-700 italic">
-                Review the mistakes below to build your core foundation.
+                Attempt more questions to establish topic mastery vectors.
               </p>
             )}
           </div>
 
-          <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-amber-800 uppercase tracking-wide">
+          {/* Topics to Review */}
+          <div className="p-3.5 rounded-lg bg-amber-50/50 border border-amber-200/70 space-y-2">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 uppercase tracking-wide">
               <AlertTriangle className="w-4 h-4 text-amber-600" />
-              <span>Concepts Needing Review</span>
+              <span>Review Topics</span>
             </div>
             {result.weakTopics.length > 0 ? (
-              <ul className="space-y-1.5 text-xs text-amber-950 font-medium">
+              <ul className="space-y-1 text-xs text-amber-950 font-medium">
                 {result.weakTopics.map((topic, i) => (
                   <li key={i} className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
@@ -166,185 +159,62 @@ export function QuizResults({ result, onExit, onRetake }: QuizResultsProps) {
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-amber-700 font-semibold">
-                Perfect score! Zero weak topics detected in this diagnostic.
+              <p className="text-xs text-amber-700 font-medium">
+                Excellent! No weak conceptual areas flagged in this attempt.
               </p>
             )}
           </div>
         </div>
-
-        {/* Readiness Score Notification Callout */}
-        <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3 text-xs text-blue-900">
-          <Sparkles className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-          <div>
-            <span className="font-semibold text-blue-800">Placement Readiness Updated: </span>
-            This assessment has been graded on the server. Your Core CS proficiency component (weighted at 30% of your overall PRS) and your daily preparation streak have been recalculated.
-          </div>
-        </div>
       </div>
 
-      {/* Mistake Review Section */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 p-6 md:p-8 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      {/* Question-by-Question Detailed Review */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-200">
           <div>
-            <h3 className="text-base font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              <BookOpen className="w-4 h-4 text-blue-600" />
-              <span>Detailed Question & Mistake Review</span>
+            <h3 className="text-sm font-bold text-slate-900">
+              Detailed Question Review & Explanations
             </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Review answers, explanations, and placement traps to prevent recurring errors.
+            <p className="text-xs text-slate-500">
+              Review correct answers, conceptual models, and technical rationales.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Filter toggle: All vs Incorrect */}
+          <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-xs">
             <button
+              type="button"
               onClick={() => setFilterMode('ALL')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-2.5 py-1 rounded-md font-semibold transition-colors ${
                 filterMode === 'ALL'
-                  ? 'bg-slate-900 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              All Questions ({result.totalQuestions})
+              All ({result.gradedQuestions.length})
             </button>
             <button
+              type="button"
               onClick={() => setFilterMode('INCORRECT')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 rounded-md font-semibold transition-colors ${
                 filterMode === 'INCORRECT'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-red-50 text-red-700 hover:bg-red-100 border border-red-200'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <XCircle className="w-3.5 h-3.5" />
-              <span>Missed Questions ({incorrectQuestions.length})</span>
+              Incorrect ({incorrectQuestions.length})
             </button>
           </div>
         </div>
 
-        {displayedQuestions.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-400">
-            No questions match the current filter.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {displayedQuestions.map((q, idx) => {
-              const isExpanded = expandedQuestions[q.questionId] ?? true;
-
-              return (
-                <div
-                  key={q.questionId}
-                  className={`rounded-2xl border transition-all ${
-                    q.isCorrect
-                      ? 'border-slate-200 bg-slate-50/50'
-                      : 'border-red-200 bg-red-50/20'
-                  }`}
-                >
-                  {/* Question Header Bar */}
-                  <div
-                    onClick={() => toggleExpand(q.questionId)}
-                    className="p-4 cursor-pointer flex items-center justify-between gap-4 select-none"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold font-mono mt-0.5 ${
-                          q.isCorrect
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : 'bg-red-100 text-red-700'
-                        }`}
-                      >
-                        {q.isCorrect ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                      </div>
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                            Q{idx + 1}
-                          </span>
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-600">
-                            {q.topicTitle}
-                          </span>
-                        </div>
-                        <div className="text-xs md:text-sm font-semibold text-slate-900 mt-1 leading-relaxed">
-                          {q.questionText}
-                        </div>
-                      </div>
-                    </div>
-
-                    <button className="text-slate-400 hover:text-slate-600 p-1">
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                  </div>
-
-                  {/* Expanded Body: Answers & Explanation */}
-                  {isExpanded && (
-                    <div className="px-5 pb-5 pt-1 space-y-3.5 border-t border-slate-200/60 mt-1">
-                      {/* Answers Comparison Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-                        {/* Candidate Selected Option */}
-                        <div
-                          className={`p-3 rounded-xl border text-xs space-y-1 ${
-                            q.isCorrect
-                              ? 'bg-emerald-50/80 border-emerald-300 text-emerald-900'
-                              : 'bg-red-50/80 border-red-300 text-red-900'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
-                            <span>Your Selection</span>
-                            {q.isCorrect ? (
-                              <span className="text-emerald-700 font-semibold">Correct</span>
-                            ) : (
-                              <span className="text-red-700 font-semibold">Incorrect</span>
-                            )}
-                          </div>
-                          <div className="font-medium pt-0.5">{q.selectedOptionText}</div>
-                        </div>
-
-                        {/* Official Correct Option */}
-                        <div className="p-3 rounded-xl border bg-emerald-50/80 border-emerald-300 text-emerald-900 text-xs space-y-1">
-                          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-emerald-800">
-                            <span>Official Correct Answer</span>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                          </div>
-                          <div className="font-medium pt-0.5">{q.correctOptionText}</div>
-                        </div>
-                      </div>
-
-                      {/* Explanation Card */}
-                      <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-xs space-y-1.5 shadow-subtle">
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700 uppercase tracking-wide">
-                          <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-                          <span>Placement Conceptual Explanation</span>
-                        </div>
-                        <p className="text-slate-600 leading-relaxed font-sans">
-                          {q.explanation}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-          <button
-            onClick={onExit}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors"
-          >
-            Return to Core CS Hub
-          </button>
-
-          {onRetake && (
-            <button
-              onClick={onRetake}
-              className="px-5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5 transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Retake This Diagnostic</span>
-            </button>
-          )}
+        {/* List of Explanations */}
+        <div className="space-y-3">
+          {displayedQuestions.map((q, idx) => (
+            <ExplanationPanel
+              key={q.questionId}
+              gradedQuestion={q}
+              questionNumber={idx + 1}
+            />
+          ))}
         </div>
       </div>
     </div>

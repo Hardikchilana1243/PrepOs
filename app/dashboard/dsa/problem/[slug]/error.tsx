@@ -1,0 +1,52 @@
+'use client';
+
+import React, { useEffect } from 'react';
+import { AlertCircle, RotateCcw, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/student-os';
+
+export default function ProblemDetailError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    console.error('Problem Detail Error:', error);
+  }, [error]);
+
+  return (
+    <div className="min-h-[50vh] flex flex-col items-center justify-center text-center p-6 max-w-md mx-auto">
+      <div className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mb-4">
+        <AlertCircle className="w-6 h-6" />
+      </div>
+
+      <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+        Failed to load problem workspace
+      </h2>
+      <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+        An error occurred while loading this problem statement and coding environment.
+      </p>
+
+      <div className="flex items-center gap-3 mt-6">
+        <Button
+          onClick={() => reset()}
+          size="sm"
+          variant="primary"
+          leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+        >
+          Retry
+        </Button>
+
+        <Link
+          href="/dashboard/dsa"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 text-slate-400" />
+          <span>DSA Roadmap</span>
+        </Link>
+      </div>
+    </div>
+  );
+}
