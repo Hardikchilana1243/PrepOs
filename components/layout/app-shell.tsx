@@ -17,6 +17,7 @@ import {
   X,
   ChevronRight,
   ShieldCheck,
+  CalendarDays,
 } from 'lucide-react';
 
 import { CommandPalette } from './command-palette';
@@ -63,6 +64,7 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
 
   const preparationNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Preparation Plan', href: '/dashboard/plan', icon: CalendarDays },
     { name: 'DSA Roadmap', href: '/dashboard/dsa', icon: Code2 },
     { name: 'Core CS Drills', href: '/dashboard/core-cs', icon: Cpu },
     { name: 'Spaced Revision', href: '/dashboard/revision', icon: RotateCcw },
@@ -74,13 +76,13 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
     { name: 'Readiness Profile', href: '/dashboard/profile', icon: User },
   ];
 
-  // Mobile Bottom Navigation items (5 essential quick-access destinations)
+  // Mobile Bottom Navigation items (quick-access destinations)
   const mobileNavItems = [
     { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Plan', href: '/dashboard/plan', icon: CalendarDays },
     { name: 'Roadmap', href: '/dashboard/dsa', icon: Code2 },
     { name: 'Core CS', href: '/dashboard/core-cs', icon: Cpu },
     { name: 'Revision', href: '/dashboard/revision', icon: RotateCcw },
-    { name: 'Companies', href: '/dashboard/companies', icon: Building2 },
   ];
 
   return (

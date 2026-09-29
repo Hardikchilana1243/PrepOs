@@ -14,6 +14,8 @@ import { CompanyCard } from '@/components/dashboard/company-card';
 import { RevisionCard } from '@/components/dashboard/revision-card';
 import { DiagnosticFocusCard } from '@/components/dashboard/diagnostic-focus-card';
 import { QuickActionsBar } from '@/components/dashboard/quick-actions-bar';
+import { RecommendationCard } from '@/components/adaptive/recommendation-card';
+import { getAdaptivePreparationData } from '@/lib/services/adaptive-preparation';
 import { toggleMissionAction } from './actions';
 import { PRSComponents } from '@/lib/services/readiness-score';
 
@@ -92,7 +94,10 @@ export default async function DashboardPage() {
   }
 
   // Primary server payload: fast, prioritized level 1 action & readiness index
-  const primaryData = await getPrimaryDashboardData(user.id);
+  const [primaryData, adaptiveData] = await Promise.all([
+    getPrimaryDashboardData(user.id),
+    getAdaptivePreparationData(user.id),
+  ]);
   const { profile, readiness, todayMissions } = primaryData;
 
   return (
@@ -100,7 +105,10 @@ export default async function DashboardPage() {
       {/* 1. TOP: Student Context & Workspace Header */}
       <DashboardHeader userName={user.name} profile={profile} />
 
-      {/* 2. PRIMARY & SECONDARY: Today's Mission & Placement Readiness */}
+      {/* 2. ADAPTIVE ENGINE: Recommended Next Highest-Impact Step */}
+      <RecommendationCard recommendation={adaptiveData.recommendation} />
+
+      {/* 3. PRIMARY & SECONDARY: Today's Mission & Placement Readiness */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Primary Action (Dominant width & prominence) */}
         <div className="lg:col-span-7 xl:col-span-8 flex flex-col">
@@ -116,7 +124,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* 3. PREPARATION PILLARS & DIAGNOSTIC FOCUS */}
+      {/* 4. PREPARATION PILLARS & DIAGNOSTIC FOCUS */}
       <section aria-labelledby="pillars-heading" className="space-y-3">
         <div className="flex items-center justify-between">
           <h2

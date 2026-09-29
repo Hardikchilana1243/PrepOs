@@ -25,14 +25,19 @@ interface CommandPaletteProps {
 interface SearchItem {
   id: string;
   title: string;
-  category: 'Navigation' | 'DSA' | 'Core CS' | 'Companies' | 'Assessments' | 'Revision & Profile';
+  category: 'Preparation' | 'Navigation' | 'DSA' | 'Core CS' | 'Companies' | 'Assessments' | 'Revision & Profile';
   url: string;
   hint: string;
 }
 
 const SEARCH_ITEMS: SearchItem[] = [
+  // Preparation
+  { id: 'prep-plan', title: 'Preparation Plan', category: 'Preparation', url: '/dashboard/plan', hint: 'Adaptive Study Orchestration & Weekly Targets' },
+  { id: 'prep-rec', title: 'Recommended Next Step', category: 'Preparation', url: '/dashboard/plan', hint: 'Highest-Impact Placement Task' },
+
   // Navigation
   { id: 'nav-dash', title: 'Dashboard', category: 'Navigation', url: '/dashboard', hint: 'Overview & Today\'s Missions' },
+  { id: 'nav-plan', title: 'Preparation Plan Route', category: 'Navigation', url: '/dashboard/plan', hint: 'Adaptive Engine & Quotas' },
   { id: 'nav-dsa', title: 'DSA Roadmap', category: 'Navigation', url: '/dashboard/dsa', hint: '14 Modules & 20 Problems' },
   { id: 'nav-corecs', title: 'Core CS Learning Hub', category: 'Navigation', url: '/dashboard/core-cs', hint: 'DBMS & Operating Systems' },
   { id: 'nav-revision', title: 'Spaced Revision Queue', category: 'Navigation', url: '/dashboard/revision', hint: 'SM-2 Active Recall' },
@@ -138,6 +143,8 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
   const getCategoryIcon = (category: SearchItem['category']) => {
     switch (category) {
+      case 'Preparation':
+        return <Sparkles className="w-4 h-4 text-blue-600" />;
       case 'Navigation':
         return <LayoutDashboard className="w-4 h-4 text-blue-600" />;
       case 'DSA':

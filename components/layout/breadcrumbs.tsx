@@ -17,6 +17,7 @@ interface BreadcrumbsProps {
 
 const ROUTE_NAME_MAP: Record<string, string> = {
   dashboard: 'Dashboard',
+  plan: 'Preparation Plan',
   dsa: 'DSA Roadmap',
   'core-cs': 'Core CS',
   revision: 'Spaced Revision',

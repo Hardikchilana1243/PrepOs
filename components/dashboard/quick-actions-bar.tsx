@@ -1,9 +1,14 @@
 import React from 'react';
 import Link from 'next/link';
-import { Code2, Cpu, FileCheck, RotateCcw, ShieldCheck, ArrowUpRight } from 'lucide-react';
+import { Code2, Cpu, FileCheck, RotateCcw, ShieldCheck, ArrowUpRight, CalendarDays } from 'lucide-react';
 
 export function QuickActionsBar() {
   const actions = [
+    {
+      label: 'Preparation Plan',
+      href: '/dashboard/plan',
+      icon: <CalendarDays className="w-3.5 h-3.5 text-blue-600" />,
+    },
     {
       label: 'DSA Roadmap',
       href: '/dashboard/dsa',
