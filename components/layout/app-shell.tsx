@@ -9,6 +9,7 @@ import {
   Cpu,
   Building2,
   RotateCcw,
+  Target,
   User,
   Search,
   LogOut,
@@ -16,10 +17,12 @@ import {
   X,
   ChevronRight,
   ShieldCheck,
-  CheckCircle2,
 } from 'lucide-react';
 
 import { CommandPalette } from './command-palette';
+import { NotificationInbox } from './notification-inbox';
+import { Breadcrumbs } from './breadcrumbs';
+import { StudentNotification } from '@/lib/services/notifications';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -27,16 +30,21 @@ interface AppShellProps {
     name: string | null;
     email: string;
   };
+  notifications?: StudentNotification[];
   onSignOut: () => Promise<void>;
 }
 
-export function AppShell({ children, user, onSignOut }: AppShellProps) {
+export function AppShell({ children, user, notifications = [], onSignOut }: AppShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Distraction-free exam mode: bypass standard application shell during active assessment attempts
-  const isExamMode = pathname.includes('/assessments/') && pathname.includes('/attempt/') && !pathname.includes('/result');
+  const isExamMode =
+    pathname.includes('/assessments/') &&
+    pathname.includes('/attempt/') &&
+    !pathname.includes('/result');
+
   if (isExamMode) {
     return <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">{children}</div>;
   }
@@ -53,44 +61,46 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const workspaceNavItems = [
+  const preparationNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'DSA Roadmap', href: '/dashboard/dsa', icon: Code2 },
     { name: 'Core CS Drills', href: '/dashboard/core-cs', icon: Cpu },
+    { name: 'Spaced Revision', href: '/dashboard/revision', icon: RotateCcw },
     { name: 'Company Hubs', href: '/dashboard/companies', icon: Building2 },
-    { name: 'Revision Queue', href: '/dashboard/revision', icon: RotateCcw },
+    { name: 'Mock Assessments', href: '/dashboard/assessments', icon: Target },
   ];
 
-  const secondaryNavItems = [
-    { name: 'Profile & PRS', href: '/dashboard/profile', icon: User },
+  const accountNavItems = [
+    { name: 'Readiness Profile', href: '/dashboard/profile', icon: User },
   ];
 
-  // Mobile Bottom Navigation items (5 essential destinations)
+  // Mobile Bottom Navigation items (5 essential quick-access destinations)
   const mobileNavItems = [
     { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Roadmap', href: '/dashboard/dsa', icon: Code2 },
-    { name: 'Drills', href: '/dashboard/core-cs', icon: Cpu },
+    { name: 'Core CS', href: '/dashboard/core-cs', icon: Cpu },
     { name: 'Revision', href: '/dashboard/revision', icon: RotateCcw },
-    { name: 'Profile', href: '/dashboard/profile', icon: User },
+    { name: 'Companies', href: '/dashboard/companies', icon: Building2 },
   ];
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans">
       <CommandPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
-      {/* Top Application Bar */}
-      <header className="h-16 border-b border-slate-200/90 bg-white/90 backdrop-blur-md sticky top-0 z-40 px-4 md:px-6 flex items-center justify-between">
+      {/* Top Application Header */}
+      <header className="h-16 border-b border-slate-200/90 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-4 md:px-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-            aria-label="Toggle Navigation"
+            aria-label="Toggle Navigation Menu"
+            aria-expanded={mobileOpen}
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
 
           <Link href="/dashboard" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-mono font-bold text-white shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-mono font-bold text-white shadow-xs">
               P
             </div>
             <div className="flex flex-col">
@@ -98,7 +108,7 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
                 PrepOS
               </span>
               <span className="text-[10px] font-medium text-slate-500 tracking-wide mt-0.5">
-                Student OS
+                Placement OS
               </span>
             </div>
           </Link>
@@ -107,19 +117,24 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
         {/* Global Quick Search Trigger (⌘K Shell) */}
         <div className="hidden sm:flex items-center">
           <button
+            type="button"
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-3 px-3.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-sm hover:border-slate-300 hover:text-slate-800 transition-all shadow-subtle"
+            className="flex items-center gap-3 px-3.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-xs hover:border-slate-300 hover:text-slate-800 transition-all shadow-subtle"
           >
-            <Search className="w-4 h-4 text-slate-400" />
-            <span className="text-xs">Search problems, topics, companies...</span>
+            <Search className="w-3.5 h-3.5 text-slate-400" />
+            <span>Search problems, topics, companies...</span>
             <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-mono text-slate-500">
               ⌘K
             </kbd>
           </button>
         </div>
 
-        {/* User Status & Sign Out */}
-        <div className="flex items-center gap-3">
+        {/* Header Right Actions: Notifications, Profile & Sign Out */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Notification Inbox */}
+          <NotificationInbox initialNotifications={notifications} />
+
+          {/* Profile Quick Link */}
           <Link
             href="/dashboard/profile"
             className="hidden sm:flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
@@ -131,16 +146,18 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
               <div className="text-xs font-semibold text-slate-800 leading-tight">
                 {user.name || 'Candidate'}
               </div>
-              <div className="text-[10px] text-slate-500 truncate max-w-[130px] leading-tight">
+              <div className="text-[10px] text-slate-500 truncate max-w-[120px] leading-tight">
                 {user.email}
               </div>
             </div>
           </Link>
 
           <button
+            type="button"
             onClick={() => onSignOut()}
-            className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
             title="Sign Out"
+            aria-label="Sign Out"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -152,11 +169,11 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
         {/* Desktop Sidebar Navigation */}
         <aside className="hidden md:flex w-64 flex-col border-r border-slate-200/90 bg-white p-4 shrink-0">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-2">
-            Workspace
+            Preparation Tracks
           </div>
 
           <nav className="space-y-1 flex-1">
-            {workspaceNavItems.map((item) => {
+            {preparationNavItems.map((item) => {
               const Icon = item.icon;
               const isActive =
                 pathname === item.href ||
@@ -166,7 +183,7 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
                   key={item.name}
                   href={item.href}
                   aria-current={isActive ? 'page' : undefined}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-h-[38px] ${
                     isActive
                       ? 'bg-blue-50/80 text-blue-700 font-semibold shadow-xs border border-blue-100/80'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
@@ -183,9 +200,9 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
 
             <div className="pt-4 pb-1">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-2">
-                Account & Settings
+                Student & Analytics
               </div>
-              {secondaryNavItems.map((item) => {
+              {accountNavItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
                 return (
@@ -193,7 +210,7 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
                     key={item.name}
                     href={item.href}
                     aria-current={isActive ? 'page' : undefined}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-h-[38px] ${
                       isActive
                         ? 'bg-blue-50/80 text-blue-700 font-semibold shadow-xs border border-blue-100/80'
                         : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
@@ -203,6 +220,7 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
                       className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}
                     />
                     <span className="truncate">{item.name}</span>
+                    {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-blue-500 shrink-0" />}
                   </Link>
                 );
               })}
@@ -216,7 +234,7 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
               <span>Real PRS Evaluation</span>
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed">
-              Every solved problem and drill updates your verified placement score.
+              Every solved problem and diagnostic drill updates your placement score.
             </p>
           </div>
         </aside>
@@ -224,38 +242,42 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
         {/* Mobile Navigation Drawer */}
         {mobileOpen && (
           <div className="md:hidden fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex">
-            <div className="w-64 bg-white border-r border-slate-200 p-4 flex flex-col h-full animate-in slide-in-from-left duration-200">
+            <div className="w-72 bg-white border-r border-slate-200 p-4 flex flex-col h-full animate-in slide-in-from-left duration-200">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-md bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
                     P
                   </div>
-                  <span className="font-bold text-sm text-slate-900">Menu</span>
+                  <span className="font-bold text-sm text-slate-900">PrepOS Navigation</span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setMobileOpen(false)}
-                  className="p-1 text-slate-400 hover:text-slate-700"
+                  className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                  aria-label="Close menu"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <nav className="space-y-1 flex-1">
-                {[...workspaceNavItems, ...secondaryNavItems].map((item) => {
+              <nav className="space-y-1 flex-1 overflow-y-auto">
+                {[...preparationNavItems, ...accountNavItems].map((item) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href;
+                  const isActive =
+                    pathname === item.href ||
+                    (item.href !== '/dashboard' && pathname.startsWith(item.href));
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+                      className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium min-h-[44px] transition-colors ${
                         isActive
-                          ? 'bg-blue-50 text-blue-700 font-semibold'
-                          : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-100'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-4 h-4 shrink-0" />
                       <span>{item.name}</span>
                     </Link>
                   );
@@ -263,10 +285,11 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
               </nav>
 
               <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
-                <span className="text-slate-500">{user.email}</span>
+                <span className="text-slate-500 truncate max-w-[150px]">{user.email}</span>
                 <button
+                  type="button"
                   onClick={() => onSignOut()}
-                  className="text-rose-600 font-medium hover:underline"
+                  className="text-rose-600 font-medium hover:underline p-1 min-h-[44px] inline-flex items-center"
                 >
                   Sign Out
                 </button>
@@ -279,13 +302,18 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-[#F8FAFC]">
           <div className="max-w-6xl mx-auto w-full">
+            {/* Unified Breadcrumbs on every page */}
+            <Breadcrumbs />
             {children}
           </div>
         </main>
       </div>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav aria-label="Mobile Navigation" className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md px-2 py-1 flex justify-around items-center sticky bottom-0 z-30 shadow-subtle">
+      <nav
+        aria-label="Mobile Bottom Navigation"
+        className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-md px-1 py-1 flex justify-around items-center sticky bottom-0 z-30 shadow-subtle"
+      >
         {mobileNavItems.map((item) => {
           const Icon = item.icon;
           const isActive =
@@ -296,7 +324,7 @@ export function AppShell({ children, user, onSignOut }: AppShellProps) {
               key={item.name}
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
-              className={`flex flex-col items-center justify-center min-h-[44px] min-w-[48px] py-1 px-2 rounded-lg text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              className={`flex flex-col items-center justify-center min-h-[44px] min-w-[54px] py-1 px-1 rounded-lg text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
                 isActive ? 'text-blue-600 font-semibold' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
