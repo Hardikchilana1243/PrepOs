@@ -122,6 +122,8 @@ model User {
   scoreHistory       ReadinessScoreHistory[]
   bookmarks          Bookmark[]
   auditLogs          AdminAuditLog[]
+  dossierSnapshots   DossierSnapshot[]
+  dossierShareTokens DossierShareToken[]
 
   @@index([email])
 }
@@ -874,4 +876,65 @@ model AdminAuditLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// PLACEMENT DOSSIER SNAPSHOT & SECURE VERIFICATION MODELS (PHASE 6.13)
+// ----------------------------------------------------------------------------
+
+model DossierSnapshot {
+  id              String   @id @default(cuid())
+  dossierId       String   @unique
+  version         String   @default("1.0.0")
+  userId          String
+  snapshotPayload String
+  prsScore        Int
+  prsTier         String
+  integrityHash   String
+  isArchived      Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shareTokens DossierShareToken[]
+
+  @@index([userId, createdAt])
+  @@index([dossierId])
+}
+
+model DossierShareToken {
+  id                String    @id @default(cuid())
+  tokenHash         String    @unique
+  dossierSnapshotId String
+  userId            String
+  status            String    @default("ACTIVE") // ACTIVE | REVOKED
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  verificationCount Int       @default(0)
+  lastVerifiedAt    DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  snapshot    DossierSnapshot            @relation(fields: [dossierSnapshotId], references: [id], onDelete: Cascade)
+  user        User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditEvents DossierVerificationAudit[]
+
+  @@index([tokenHash])
+  @@index([userId])
+  @@index([dossierSnapshotId])
+}
+
+model DossierVerificationAudit {
+  id                String   @id @default(cuid())
+  shareTokenId      String?
+  dossierSnapshotId String?
+  eventType         String   // SHARE_CREATED | SHARE_REGENERATED | SHARE_REVOKED | VERIFICATION_SUCCESS | VERIFICATION_EXPIRED | VERIFICATION_REVOKED | VERIFICATION_INVALID
+  ipHash            String?
+  userAgent         String?
+  timestamp         DateTime @default(now())
+
+  shareToken DossierShareToken? @relation(fields: [shareTokenId], references: [id], onDelete: SetNull)
+
+  @@index([shareTokenId, eventType])
+  @@index([dossierSnapshotId])
+  @@index([timestamp])
 }

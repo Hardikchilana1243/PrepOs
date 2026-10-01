@@ -1,9 +1,10 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
-import prisma from '@/lib/db';
 import { getSessionUser } from '@/lib/auth';
-import { CompanyExplorer } from '@/components/companies/company-explorer';
-import { PageHeader } from '@/components/ui/student-os';
+import { getCompanyCatalogData } from '@/lib/services/companies';
+import { Breadcrumbs } from '@/components/layout/breadcrumbs';
+import { CompaniesHeader } from '@/components/companies/companies-header';
+import { CompanyGrid } from '@/components/companies/company-grid';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,149 +14,44 @@ interface PageProps {
   };
 }
 
-function getCompanyTier(slug: string): string {
-  if (['google', 'microsoft', 'amazon', 'uber', 'atlassian'].includes(slug)) {
-    return 'Tier-1 Tech';
-  }
-  if (['flipkart', 'goldman-sachs'].includes(slug)) {
-    return 'Product';
-  }
-  if (['cisco', 'oracle'].includes(slug)) {
-    return 'Enterprise';
-  }
-  return 'High-Impact IT';
-}
-
 export default async function CompaniesPage({ searchParams }: PageProps) {
-  const user = await getSessionUser();
+  // If legacy query param ?company=slug is present, redirect to the focused workspace detail route
+  if (searchParams?.company) {
+    redirect(`/dashboard/companies/${searchParams.company}`);
+  }
 
+  const user = await getSessionUser();
   if (!user) {
     redirect('/auth/sign-in');
   }
 
-  // Fetch all companies, patterns, assessments, and mapped problems
-  const [companies, userProgress] = await Promise.all([
-    prisma.company.findMany({
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        patterns: {
-          orderBy: { frequencyPct: 'desc' },
-          select: {
-            patternName: true,
-            frequencyPct: true,
-          },
-        },
-        assessments: {
-          where: { status: 'PUBLISHED' },
-          orderBy: { orderIndex: 'asc' },
-          select: {
-            id: true,
-            slug: true,
-            title: true,
-            description: true,
-            durationMin: true,
-            totalMarks: true,
-            totalQuestions: true,
-            difficulty: true,
-            sections: {
-              select: {
-                id: true,
-                title: true,
-                type: true,
-                totalMarks: true,
-              },
-            },
-            attempts: {
-              where: { userId: user.id },
-              orderBy: { createdAt: 'desc' },
-              take: 1,
-              select: {
-                id: true,
-                status: true,
-                scorePct: true,
-                totalScore: true,
-                maxPossibleScore: true,
-                passed: true,
-              },
-            },
-          },
-        },
-        companyProblems: {
-          select: {
-            problem: {
-              select: {
-                id: true,
-                slug: true,
-                title: true,
-                difficulty: true,
-                topic: {
-                  select: {
-                    title: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.userProgress.findMany({
-      where: { userId: user.id, isSolved: true },
-      select: { problemId: true },
-    }),
-  ]);
+  const data = await getCompanyCatalogData(user.id);
 
-  const solvedSet = new Set(userProgress.map((p) => p.problemId));
-
-  const formattedCompanies = companies.map((comp) => ({
-    id: comp.id,
-    slug: comp.slug,
-    name: comp.name,
-    tier: getCompanyTier(comp.slug),
-    hiringRoles: ['SDE-1', 'Graduate Software Engineer'],
-    patterns: comp.patterns.map((p) => ({
-      patternName: p.patternName,
-      frequencyPct: p.frequencyPct,
-      description: `Verified pattern frequency (${p.frequencyPct}%) from recent placement interview rounds.`,
-    })),
-    problems: comp.companyProblems.map((cp) => ({
-      id: cp.problem.id,
-      slug: cp.problem.slug,
-      title: cp.problem.title,
-      difficulty: cp.problem.difficulty,
-      topicTitle: cp.problem.topic.title,
-      isSolved: solvedSet.has(cp.problem.id),
-    })),
-    assessments: comp.assessments.map((a) => ({
-      id: a.id,
-      slug: a.slug,
-      title: a.title,
-      description: a.description,
-      durationMin: a.durationMin,
-      totalMarks: a.totalMarks,
-      totalQuestions: a.totalQuestions,
-      difficulty: a.difficulty,
-      sectionsCount: a.sections.length,
-      latestAttempt: a.attempts[0]
-        ? {
-            id: a.attempts[0].id,
-            status: a.attempts[0].status,
-            scorePct: a.attempts[0].scorePct,
-            passed: a.attempts[0].passed,
-          }
-        : null,
-    })),
-  }));
+  const totalProblemsCount = data.companies.reduce(
+    (sum, c) => sum + c.mappedProblemsCount,
+    0
+  );
+  const totalAssessmentsCount = data.companies.reduce(
+    (sum, c) => sum + c.assessmentsCount,
+    0
+  );
 
   return (
     <div className="space-y-6">
-      <CompanyExplorer
-        companies={formattedCompanies}
-        initialCompanySlug={searchParams.company}
+      <Breadcrumbs />
+
+      {/* Companies Catalog Header with Key Metrics */}
+      <CompaniesHeader
+        totalCompanies={data.totalCompanies}
+        totalTargetCount={data.totalTargetCount}
+        totalProblemsCount={totalProblemsCount}
+        totalAssessmentsCount={totalAssessmentsCount}
+        overallCoveragePct={data.overallCoveragePct}
+        totalCoveredCount={data.totalCoveredCount}
       />
+
+      {/* Responsive Catalog Grid with Client-Side Search & Filters */}
+      <CompanyGrid initialCompanies={data.companies} />
     </div>
   );
 }

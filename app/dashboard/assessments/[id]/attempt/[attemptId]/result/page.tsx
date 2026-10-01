@@ -3,9 +3,16 @@ import { notFound, redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { compileResultSummary, evaluateAssessmentAttempt } from '@/lib/services/assessment-scoring';
+import { getAssessmentHistoricalAttempts } from '@/lib/services/assessment';
 import { AssessmentResults } from '@/components/assessments/assessment-results';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata = {
+  title: 'Assessment Diagnostic Scorecard | PrepOS',
+  description:
+    'Detailed diagnostic report with section breakdowns, testcase verdicts, code reviews, and performance analytics.',
+};
 
 interface PageProps {
   params: {
@@ -41,5 +48,8 @@ export default async function AssessmentResultPage({ params }: PageProps) {
     notFound();
   }
 
-  return <AssessmentResults result={result} />;
+  // Fetch real historical attempts for performance trend trajectory
+  const historicalAttempts = await getAssessmentHistoricalAttempts(result.assessmentSlug, user.id);
+
+  return <AssessmentResults result={result} historicalAttempts={historicalAttempts} />;
 }

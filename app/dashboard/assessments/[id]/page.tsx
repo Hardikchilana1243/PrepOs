@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   Calendar,
   AlertTriangle,
-} from 'lucide-react';
+}
+  from 'lucide-react';
 import { getSessionUser } from '@/lib/auth';
 import { getAssessmentOverview } from '@/lib/services/assessment';
 import { PageHeader, DifficultyBadge } from '@/components/ui/student-os';
@@ -40,14 +41,21 @@ export default async function AssessmentOverviewPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-2">
-      {/* Return Link */}
-      <div>
+      {/* Navigation Links */}
+      <div className="flex items-center gap-3">
         <Link
-          href={`/dashboard/companies?company=${overview.companySlug}`}
+          href="/dashboard/assessments"
           className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to {overview.companyName} Hub</span>
+          <span>All Assessments</span>
+        </Link>
+        <span className="text-slate-300">•</span>
+        <Link
+          href={`/dashboard/companies/${overview.companySlug}`}
+          className="text-xs font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1.5 transition-colors"
+        >
+          <span>{overview.companyName} Hub</span>
         </Link>
       </div>
 

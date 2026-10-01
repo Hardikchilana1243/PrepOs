@@ -171,10 +171,10 @@ export function ReadinessCard({ readiness }: ReadinessCardProps) {
       {/* Footer Link */}
       <div className="mt-4 pt-3 border-t border-slate-100">
         <Link
-          href="/dashboard/profile"
+          href="/dashboard/readiness"
           className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-between group transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded"
         >
-          <span>View complete readiness metrics</span>
+          <span>Open Readiness Command Center</span>
           <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </Link>
       </div>

@@ -3,6 +3,7 @@
 // ============================================================================
 // PREPOS ASSESSMENT WORKSPACE COMPONENT
 // Distraction-Free, Exam-Like Timed Workspace (Desktop & Mobile Responsive)
+// Features authoritative timer, autosave, mark-for-review, jump navigation, secure submit
 // ============================================================================
 
 import React, { useState, useEffect, useRef, useTransition, useCallback } from 'react';
@@ -21,6 +22,10 @@ import {
   X,
   ShieldAlert,
   ArrowRight,
+  Flag,
+  Check,
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import { AssessmentWorkspaceData } from '@/lib/services/assessment';
 import {
@@ -47,6 +52,9 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
   // Authoritative server-calculated remaining time
   const [timeLeft, setTimeLeft] = useState(() => initialData.remainingSeconds);
   const [isTimeExpired, setIsTimeExpired] = useState(false);
+
+  // Mark-for-review flags map: questionId -> boolean
+  const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>({});
 
   // Saved answers map: questionId -> { selectedOptionId, codeDraft, codeLanguage, lastSavedAt }
   const [answers, setAnswers] = useState<Record<string, {
@@ -110,7 +118,7 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
     errorLog?: string;
   } | null>(null);
 
-  // Active coding tab (editor vs console)
+  // Active coding tab
   const [activeConsoleTab, setActiveConsoleTab] = useState<'TESTS' | 'OUTPUT'>('TESTS');
 
   // Submit assessment modal
@@ -156,12 +164,20 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
   const totalAnsweredCount = initialData.sections.reduce((acc, s) => {
     return acc + s.questions.filter((q) => isQuestionAnswered(q.id, q.type)).length;
   }, 0);
+  const totalMarkedCount = Object.values(markedForReview).filter(Boolean).length;
+
+  // Toggle mark-for-review
+  const handleToggleMarkForReview = (questionId: string) => {
+    setMarkedForReview((prev) => ({
+      ...prev,
+      [questionId]: !prev[questionId],
+    }));
+  };
 
   // Handle MCQ Option Selection with fast server-side autosave
   const handleSelectMCQOption = async (optionId: string) => {
     if (isTimeExpired || isFinalSubmitting) return;
 
-    // Optimistic UI update
     setAnswers((prev) => ({
       ...prev,
       [currentQuestion.id]: {
@@ -196,7 +212,7 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
     }));
   };
 
-  // Handle Code Editor Change with 3-second debouncing
+  // Handle Code Editor Change with debounced autosave
   const handleCodeChange = (newCode: string) => {
     if (isTimeExpired || isFinalSubmitting) return;
 
@@ -241,7 +257,6 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
     const currentCode = answers[currentQuestion.id]?.codeDraft;
     const starter = getStarterCode(currentQuestion.title?.toLowerCase().replace(/\s+/g, '-') || '', newLang);
 
-    // If candidate hasn't heavily modified starter, switch to new template
     const codeToUse = (!currentCode || currentCode.length < 50) ? starter : currentCode;
 
     setAnswers((prev) => ({
@@ -310,7 +325,6 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
       );
       setSubmitResults(res);
 
-      // Record latest submission verdict
       setSubmissions((prev) => ({
         ...prev,
         [currentQuestion.id]: {
@@ -387,7 +401,7 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
     setSubmitResults(null);
   };
 
-  // Format timer
+  // Timer formatting
   const hours = Math.floor(timeLeft / 3600);
   const minutes = Math.floor((timeLeft % 3600) / 60);
   const seconds = timeLeft % 60;
@@ -396,15 +410,35 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
     : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   const isTimerCritical = timeLeft < 300; // < 5 minutes
-  const isTimerWarning = timeLeft < 900;  // < 15 minutes
+  const isTimerUrgent = timeLeft < 60;   // < 1 minute
+
+  const isCurrentQuestionMarked = Boolean(markedForReview[currentQuestion.id]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Timer Warning Banner if under 5 minutes */}
+      {isTimerCritical && !isTimeExpired && (
+        <div
+          className={`py-2 px-4 text-xs font-semibold text-center flex items-center justify-center gap-2 ${
+            isTimerUrgent
+              ? 'bg-rose-600 text-white animate-pulse'
+              : 'bg-amber-500 text-slate-950 font-bold'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          <span>
+            {isTimerUrgent
+              ? 'Critical: Under 1 minute remaining! Your draft answers are being autosaved and will be submitted automatically.'
+              : 'Warning: Under 5 minutes remaining! Review your flagged questions and prepare for submission.'}
+          </span>
+        </div>
+      )}
+
       {/* 1. DISTRACTION-FREE EXAM HEADER */}
-      <header className="sticky top-0 z-30 bg-white border-b border-slate-200/90 shadow-sm px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-30 bg-white border-b border-slate-200/90 shadow-xs px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
         {/* Left: Assessment Title & Company */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-sm">
+          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs shrink-0 shadow-xs">
             {initialData.companyName.charAt(0)}
           </div>
           <div className="min-w-0">
@@ -419,27 +453,27 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
           </div>
         </div>
 
-        {/* Center: Authoritative Countdown Timer */}
+        {/* Center: Authoritative Countdown Timer & Autosave Status */}
         <div className="flex items-center gap-3">
           <div
             className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 font-mono font-bold text-xs sm:text-sm transition-colors ${
-              isTimerCritical
-                ? 'bg-rose-50 border-rose-200 text-rose-600 animate-pulse'
-                : isTimerWarning
-                ? 'bg-amber-50 border-amber-200 text-amber-700'
+              isTimerUrgent
+                ? 'bg-rose-50 border-rose-200 text-rose-600 animate-pulse ring-1 ring-rose-300'
+                : isTimerCritical
+                ? 'bg-amber-50 border-amber-200 text-amber-700 ring-1 ring-amber-300'
                 : 'bg-slate-100 border-slate-200 text-slate-800'
             }`}
           >
-            <Clock className={`w-4 h-4 ${isTimerCritical ? 'text-rose-600' : 'text-slate-500'}`} />
+            <Clock className={`w-4 h-4 ${isTimerCritical ? 'text-amber-600' : 'text-slate-500'}`} />
             <span>{timerFormatted}</span>
           </div>
 
-          {/* Autosave Indicator */}
-          <div className="hidden md:flex items-center gap-1.5 text-[11px] text-slate-400">
+          {/* Autosave Status */}
+          <div className="hidden md:flex items-center gap-1.5 text-[11px] text-slate-400 font-mono">
             {saveStatus === 'saving' ? (
               <>
                 <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
-                <span>Autosaving...</span>
+                <span>Saving draft...</span>
               </>
             ) : (
               <span>Autosaved</span>
@@ -451,11 +485,11 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setShowSubmitModal(true)}
-            className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-sm flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-xs flex items-center gap-1.5 min-h-[40px]"
           >
             <Send className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Finish Assessment</span>
-            <span className="sm:hidden">Finish</span>
+            <span className="hidden sm:inline">Finish & Submit</span>
+            <span className="sm:hidden">Submit</span>
           </button>
         </div>
       </header>
@@ -476,9 +510,9 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                   setRunResults(null);
                   setSubmitResults(null);
                 }}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap ${
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 whitespace-nowrap min-h-[38px] ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200/90 shadow-subtle'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200/90 shadow-xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
@@ -493,8 +527,16 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
         </div>
 
         {/* Overall Progress Counter */}
-        <div className="text-xs text-slate-500 font-medium hidden lg:block shrink-0">
-          Questions Completed: <span className="font-semibold text-slate-800">{totalAnsweredCount}</span> of {totalQuestionsCount}
+        <div className="text-xs text-slate-500 font-medium hidden lg:flex items-center gap-3 shrink-0">
+          {totalMarkedCount > 0 && (
+            <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 font-mono text-[11px] flex items-center gap-1">
+              <Flag className="w-3 h-3 fill-amber-500 text-amber-600" />
+              <span>{totalMarkedCount} Flagged</span>
+            </span>
+          )}
+          <span>
+            Progress: <strong className="text-slate-800 font-mono">{totalAnsweredCount}</strong> of {totalQuestionsCount}
+          </span>
         </div>
       </div>
 
@@ -503,12 +545,12 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
         {/* Left Column: Question Navigator & Problem Description */}
         <div className="w-full lg:w-1/2 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-200 bg-white overflow-y-auto">
           {/* Question Number Pills Navigator */}
-          <div className="p-3.5 border-b border-slate-100 bg-slate-50/60">
-            <div className="flex items-center justify-between mb-2">
+          <div className="p-3.5 border-b border-slate-100 bg-slate-50/60 space-y-2">
+            <div className="flex items-center justify-between text-xs">
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 {currentSection.title} (Question {activeQuestionIdx + 1} of {currentSection.questions.length})
               </span>
-              <span className="text-[11px] font-semibold text-blue-600">
+              <span className="text-[11px] font-semibold text-blue-600 font-mono">
                 {currentQuestion.marks} Marks {currentQuestion.negativeMarks > 0 && `(-${currentQuestion.negativeMarks} penalty)`}
               </span>
             </div>
@@ -517,6 +559,7 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
               {currentSection.questions.map((q, qIdx) => {
                 const isCurrent = qIdx === activeQuestionIdx;
                 const isAnswered = isQuestionAnswered(q.id, q.type);
+                const isMarked = Boolean(markedForReview[q.id]);
                 const isCodingSolved = submissions[q.id]?.status === 'ACCEPTED';
 
                 return (
@@ -527,9 +570,11 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                       setRunResults(null);
                       setSubmitResults(null);
                     }}
-                    className={`w-8 h-8 rounded-lg text-xs font-mono font-semibold transition-all flex items-center justify-center ${
+                    className={`relative w-9 h-9 rounded-lg text-xs font-mono font-semibold transition-all flex items-center justify-center min-h-[36px] min-w-[36px] ${
                       isCurrent
-                        ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-600/30'
+                        ? 'bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/30'
+                        : isMarked
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold'
                         : isCodingSolved
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         : isAnswered
@@ -537,7 +582,10 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                         : 'bg-white text-slate-700 border border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    {qIdx + 1}
+                    <span>{qIdx + 1}</span>
+                    {isMarked && !isCurrent && (
+                      <Flag className="w-2.5 h-2.5 fill-amber-500 text-amber-600 absolute -top-1 -right-1" />
+                    )}
                   </button>
                 );
               })}
@@ -546,17 +594,32 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
 
           {/* Question Statement Container */}
           <div className="p-5 sm:p-6 space-y-6 flex-1 overflow-y-auto">
+            {/* Question Bar: Type & Mark-for-review toggle */}
+            <div className="flex items-center justify-between gap-3 pb-2 border-b border-slate-100">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                {currentQuestion.type === 'MCQ' ? 'Core CS Multiple Choice' : 'Algorithmic Coding Challenge'}
+              </span>
+
+              <button
+                onClick={() => handleToggleMarkForReview(currentQuestion.id)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors min-h-[36px] ${
+                  isCurrentQuestionMarked
+                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                    : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                }`}
+                title="Mark this question to review before final submission"
+              >
+                <Flag className={`w-3.5 h-3.5 ${isCurrentQuestionMarked ? 'fill-amber-500 text-amber-600' : 'text-slate-400'}`} />
+                <span>{isCurrentQuestionMarked ? 'Flagged for Review' : 'Mark for Review'}</span>
+              </button>
+            </div>
+
             {currentQuestion.type === 'MCQ' ? (
               /* MCQ Question Presentation */
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                    Multiple Choice Question
-                  </span>
-                  <h2 className="text-base sm:text-lg font-semibold text-slate-900 leading-relaxed">
-                    {currentQuestion.questionText}
-                  </h2>
-                </div>
+                <h2 className="text-base sm:text-lg font-semibold text-slate-900 leading-relaxed">
+                  {currentQuestion.questionText}
+                </h2>
 
                 {/* MCQ Options Radio Cards */}
                 <div className="space-y-2.5 pt-2">
@@ -568,9 +631,9 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                       <div
                         key={opt.id}
                         onClick={() => handleSelectMCQOption(opt.id)}
-                        className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3 ${
+                        className={`p-4 rounded-xl border cursor-pointer transition-all flex items-start gap-3 min-h-[44px] ${
                           isSelected
-                            ? 'bg-blue-50/80 border-blue-500 ring-1 ring-blue-500/20 text-blue-900 shadow-sm'
+                            ? 'bg-blue-50/80 border-blue-500 ring-1 ring-blue-500/20 text-blue-900 shadow-xs'
                             : 'bg-white border-slate-200/90 hover:border-slate-300 text-slate-800'
                         }`}
                       >
@@ -596,9 +659,9 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                   <div className="pt-2">
                     <button
                       onClick={handleClearMCQSelection}
-                      className="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+                      className="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors p-1"
                     >
-                      Clear my choice
+                      Clear selection
                     </button>
                   </div>
                 )}
@@ -671,15 +734,15 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
             )}
           </div>
 
-          {/* Bottom Pagination Control */}
+          {/* Bottom Step-through Navigation Controls */}
           <div className="p-3.5 border-t border-slate-200 bg-white flex items-center justify-between">
             <button
               onClick={goToPrevQuestion}
               disabled={activeSectionIdx === 0 && activeQuestionIdx === 0}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1"
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1.5 min-h-[40px]"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Previous</span>
+              <span>Previous Question</span>
             </button>
 
             <button
@@ -688,15 +751,15 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                 activeSectionIdx === initialData.sections.length - 1 &&
                 activeQuestionIdx === currentSection.questions.length - 1
               }
-              className="px-3.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1 shadow-sm"
+              className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 disabled:opacity-40 disabled:pointer-events-none flex items-center gap-1.5 shadow-xs min-h-[40px]"
             >
-              <span>Next</span>
+              <span>Next Question</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Right Column: Code Editor & Execution Console (or MCQ navigation panel on mobile) */}
+        {/* Right Column: Code Editor & Execution Console */}
         <div className="w-full lg:w-1/2 flex flex-col bg-slate-900 text-white overflow-hidden min-h-[500px] lg:min-h-0">
           {currentQuestion.type === 'CODING' ? (
             <>
@@ -707,7 +770,7 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                   <select
                     value={answers[currentQuestion.id]?.codeLanguage || 'CPP'}
                     onChange={(e) => handleLanguageChange(e.target.value as SupportedLanguage)}
-                    className="bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white px-2.5 py-1 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                    className="bg-slate-900 border border-slate-700 rounded-lg text-xs font-mono text-white px-2.5 py-1 focus:ring-1 focus:ring-blue-500 focus:outline-none min-h-[34px]"
                   >
                     <option value="CPP">C++ (GCC 14.1)</option>
                     <option value="JAVA">Java (JDK 17)</option>
@@ -762,20 +825,20 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                     <button
                       onClick={handleRunSampleCode}
                       disabled={isRunningCode || isSubmittingCode}
-                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs transition-colors flex items-center gap-1.5 disabled:opacity-50 min-h-[36px]"
                     >
                       {isRunningCode ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Play className="w-3.5 h-3.5 text-blue-400" />
                       )}
-                      <span>Run Sample Tests</span>
+                      <span>Run Samples</span>
                     </button>
 
                     <button
                       onClick={handleSubmitCode}
                       disabled={isRunningCode || isSubmittingCode}
-                      className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                      className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-50 min-h-[36px]"
                     >
                       {isSubmittingCode ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -917,18 +980,25 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
               </p>
 
               {/* Breakdown Stats */}
-              <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                   <div className="text-slate-400 text-[10px] uppercase font-bold">Answered</div>
-                  <div className="text-base font-bold text-emerald-600">
-                    {totalAnsweredCount} / {totalQuestionsCount}
+                  <div className="text-base font-bold text-emerald-600 font-mono">
+                    {totalAnsweredCount}
                   </div>
                 </div>
 
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                   <div className="text-slate-400 text-[10px] uppercase font-bold">Unanswered</div>
-                  <div className="text-base font-bold text-amber-600">
+                  <div className="text-base font-bold text-amber-600 font-mono">
                     {totalQuestionsCount - totalAnsweredCount}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="text-slate-400 text-[10px] uppercase font-bold">Flagged</div>
+                  <div className="text-base font-bold text-amber-700 font-mono">
+                    {totalMarkedCount}
                   </div>
                 </div>
               </div>
@@ -937,7 +1007,16 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
                   <ShieldAlert className="w-4 h-4 shrink-0 text-amber-600" />
                   <span>
-                    You have {totalQuestionsCount - totalAnsweredCount} unattempted questions.
+                    You have {totalQuestionsCount - totalAnsweredCount} unattempted questions remaining.
+                  </span>
+                </div>
+              )}
+
+              {totalMarkedCount > 0 && (
+                <div className="p-3 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-800 text-xs flex items-center gap-2">
+                  <Flag className="w-4 h-4 shrink-0 text-amber-600 fill-amber-500" />
+                  <span>
+                    You have {totalMarkedCount} questions marked for review.
                   </span>
                 </div>
               )}
@@ -953,7 +1032,7 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
               <button
                 onClick={() => setShowSubmitModal(false)}
                 disabled={isFinalSubmitting}
-                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors min-h-[40px]"
               >
                 Continue Assessment
               </button>
@@ -961,7 +1040,7 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
               <button
                 onClick={handleFinalSubmit}
                 disabled={isFinalSubmitting}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-xs disabled:opacity-50 min-h-[40px]"
               >
                 {isFinalSubmitting ? (
                   <>
@@ -970,7 +1049,7 @@ export function AssessmentWorkspace({ initialData }: WorkspaceProps) {
                   </>
                 ) : (
                   <>
-                    <span>Submit & View Results</span>
+                    <span>Submit & Finish</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </>
                 )}

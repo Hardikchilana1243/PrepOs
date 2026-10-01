@@ -891,3 +891,267 @@ export async function submitFinalAssessment(
     redirectUrl: `/dashboard/assessments/${attempt.assessmentId}/attempt/${attempt.id}/result`,
   };
 }
+
+export interface AssessmentCatalogItem {
+  id: string;
+  slug: string;
+  title: string;
+  description: string | null;
+  durationMin: number;
+  totalMarks: number;
+  totalQuestions: number;
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD';
+  passingScorePct: number;
+  company: {
+    id: string;
+    name: string;
+    slug: string;
+    tier: string;
+    isTarget: boolean;
+  };
+  sections: {
+    id: string;
+    title: string;
+    type: 'CODING' | 'CORE_CS';
+    totalMarks: number;
+    questionsCount: number;
+  }[];
+  assessmentType: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+  attemptsCount: number;
+  bestScorePct: number | null;
+  latestScorePct: number | null;
+  isPassed: boolean;
+  activeAttempt: {
+    attemptId: string;
+    remainingSeconds: number;
+  } | null;
+  latestAttemptId: string | null;
+}
+
+export interface AssessmentCatalogData {
+  totalAssessments: number;
+  attemptedCount: number;
+  passedCount: number;
+  averageScorePct: number;
+  assessments: AssessmentCatalogItem[];
+}
+
+/**
+ * Fetches structured assessment catalog with company links, student attempt records,
+ * and high-scanability metadata for /dashboard/assessments.
+ */
+export async function getAssessmentCatalogData(userId: string): Promise<AssessmentCatalogData> {
+  const [assessments, userAttempts, targetEvents] = await Promise.all([
+    prisma.assessment.findMany({
+      where: { status: 'PUBLISHED' },
+      include: {
+        company: true,
+        sections: {
+          orderBy: { orderIndex: 'asc' },
+          include: {
+            questions: { select: { id: true } },
+          },
+        },
+        attempts: {
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { orderIndex: 'asc' },
+    }),
+    prisma.assessmentAttempt.findMany({
+      where: { userId },
+      select: {
+        assessmentId: true,
+        scorePct: true,
+        passed: true,
+        status: true,
+      },
+    }),
+    prisma.progressEvent.findMany({
+      where: {
+        userId,
+        eventType: 'TARGET_COMPANY_SET',
+      },
+      select: { metadata: true },
+    }),
+  ]);
+
+  const targetSet = new Set<string>();
+  for (const ev of targetEvents) {
+    if (!ev.metadata) continue;
+    try {
+      const meta = typeof ev.metadata === 'string' ? JSON.parse(ev.metadata) : (ev.metadata as any);
+      if (meta?.companySlug) targetSet.add(meta.companySlug);
+    } catch {
+      // Ignore
+    }
+  }
+
+  const now = new Date();
+  const catalogItems: AssessmentCatalogItem[] = assessments.map((a) => {
+    const isTarget = targetSet.has(a.company.slug);
+    const active = a.attempts.find(
+      (att) => (att.status === 'STARTED' || att.status === 'IN_PROGRESS') && att.expiresAt > now
+    );
+
+    const completedAttempts = a.attempts.filter(
+      (att) => att.status === 'EVALUATED' || att.status === 'SUBMITTED' || att.status === 'EXPIRED'
+    );
+
+    const bestScorePct =
+      completedAttempts.length > 0
+        ? Math.max(...completedAttempts.map((att) => att.scorePct))
+        : null;
+
+    const latestAttempt = completedAttempts[0];
+    const latestScorePct = latestAttempt ? latestAttempt.scorePct : null;
+    const isPassed = completedAttempts.some((att) => att.passed);
+
+    let status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' = 'NOT_STARTED';
+    if (active) {
+      status = 'IN_PROGRESS';
+    } else if (completedAttempts.length > 0) {
+      status = 'COMPLETED';
+    }
+
+    // Determine assessment type based on sections
+    const hasCoding = a.sections.some((s) => s.type === 'CODING');
+    const hasCoreCS = a.sections.some((s) => s.type === 'CORE_CS');
+    let assessmentType = 'Full-Length Simulation';
+    if (hasCoding && hasCoreCS) assessmentType = 'Coding + Core CS MCQ';
+    else if (hasCoding) assessmentType = 'Algorithmic Coding Only';
+    else if (hasCoreCS) assessmentType = 'Core CS Screening Only';
+
+    const remainingSeconds = active
+      ? Math.max(0, Math.floor((active.expiresAt.getTime() - now.getTime()) / 1000))
+      : 0;
+
+    let tier = 'High-Impact IT';
+    if (['google', 'microsoft', 'amazon', 'uber', 'atlassian'].includes(a.company.slug)) {
+      tier = 'Tier-1 Tech';
+    } else if (['flipkart', 'goldman-sachs', 'walmart'].includes(a.company.slug)) {
+      tier = 'Product';
+    }
+
+    return {
+      id: a.id,
+      slug: a.slug,
+      title: a.title,
+      description: a.description,
+      durationMin: a.durationMin,
+      totalMarks: a.totalMarks,
+      totalQuestions: a.sections.reduce((sum, s) => sum + s.questions.length, 0),
+      difficulty: a.difficulty as 'EASY' | 'MEDIUM' | 'HARD',
+      passingScorePct: a.passingScorePct,
+      company: {
+        id: a.company.id,
+        name: a.company.name,
+        slug: a.company.slug,
+        tier,
+        isTarget,
+      },
+      sections: a.sections.map((s) => ({
+        id: s.id,
+        title: s.title,
+        type: s.type as 'CODING' | 'CORE_CS',
+        totalMarks: s.totalMarks,
+        questionsCount: s.questions.length,
+      })),
+      assessmentType,
+      status,
+      attemptsCount: a.attempts.length,
+      bestScorePct,
+      latestScorePct,
+      isPassed,
+      activeAttempt: active
+        ? {
+            attemptId: active.id,
+            remainingSeconds,
+          }
+        : null,
+      latestAttemptId: latestAttempt ? latestAttempt.id : null,
+    };
+  });
+
+  const uniqueAttemptedAssessments = new Set(userAttempts.map((att) => att.assessmentId));
+  const uniquePassedAssessments = new Set(
+    userAttempts.filter((att) => att.passed).map((att) => att.assessmentId)
+  );
+
+  const completedAttempts = userAttempts.filter(
+    (att) => att.status === 'EVALUATED' || att.status === 'SUBMITTED'
+  );
+  const averageScorePct =
+    completedAttempts.length > 0
+      ? Math.round(completedAttempts.reduce((sum, att) => sum + att.scorePct, 0) / completedAttempts.length)
+      : 0;
+
+  return {
+    totalAssessments: catalogItems.length,
+    attemptedCount: uniqueAttemptedAssessments.size,
+    passedCount: uniquePassedAssessments.size,
+    averageScorePct,
+    assessments: catalogItems,
+  };
+}
+
+export interface HistoricalAttemptItem {
+  id: string;
+  attemptNumber: number;
+  scorePct: number;
+  totalScore: number;
+  maxPossibleScore: number;
+  passed: boolean;
+  durationTakenSec: number;
+  completedAt: Date;
+}
+
+/**
+ * Fetches historical attempts for an assessment for performance trend charts.
+ */
+export async function getAssessmentHistoricalAttempts(
+  assessmentSlugOrId: string,
+  userId: string
+): Promise<HistoricalAttemptItem[]> {
+  const assessment = await prisma.assessment.findFirst({
+    where: {
+      OR: [{ id: assessmentSlugOrId }, { slug: assessmentSlugOrId }],
+    },
+    select: { id: true },
+  });
+
+  if (!assessment) return [];
+
+  const attempts = await prisma.assessmentAttempt.findMany({
+    where: {
+      assessmentId: assessment.id,
+      userId,
+      status: { in: ['EVALUATED', 'SUBMITTED'] },
+    },
+    orderBy: { createdAt: 'asc' },
+    select: {
+      id: true,
+      attemptNumber: true,
+      scorePct: true,
+      totalScore: true,
+      maxPossibleScore: true,
+      passed: true,
+      durationTakenSec: true,
+      submittedAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return attempts.map((a) => ({
+    id: a.id,
+    attemptNumber: a.attemptNumber,
+    scorePct: a.scorePct,
+    totalScore: a.totalScore,
+    maxPossibleScore: a.maxPossibleScore,
+    passed: a.passed,
+    durationTakenSec: a.durationTakenSec,
+    completedAt: a.submittedAt ?? a.updatedAt,
+  }));
+}

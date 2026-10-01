@@ -40,7 +40,7 @@ export function CompanyCard({ companies }: CompanyCardProps) {
             {companies.slice(0, 3).map((comp) => (
               <Link
                 key={comp.slug}
-                href={`/dashboard/companies?company=${comp.slug}`}
+                href={`/dashboard/companies/${comp.slug}`}
                 className="flex items-center justify-between p-2 rounded-lg bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 transition-colors text-xs group"
               >
                 <span className="font-semibold text-slate-800 group-hover:text-blue-600 truncate">

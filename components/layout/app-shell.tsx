@@ -20,7 +20,8 @@ import {
   CalendarDays,
 } from 'lucide-react';
 
-import { CommandPalette } from './command-palette';
+import { SearchDialog } from '@/components/search/search-dialog';
+import { GlobalSearch } from '@/components/search/global-search';
 import { NotificationInbox } from './notification-inbox';
 import { Breadcrumbs } from './breadcrumbs';
 import { StudentNotification } from '@/lib/services/notifications';
@@ -64,6 +65,7 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
 
   const preparationNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Readiness Cockpit', href: '/dashboard/readiness', icon: ShieldCheck },
     { name: 'Preparation Plan', href: '/dashboard/plan', icon: CalendarDays },
     { name: 'DSA Roadmap', href: '/dashboard/dsa', icon: Code2 },
     { name: 'Core CS Drills', href: '/dashboard/core-cs', icon: Cpu },
@@ -73,13 +75,14 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
   ];
 
   const accountNavItems = [
+    { name: 'Readiness Cockpit', href: '/dashboard/readiness', icon: ShieldCheck },
     { name: 'Readiness Profile', href: '/dashboard/profile', icon: User },
   ];
 
   // Mobile Bottom Navigation items (quick-access destinations)
   const mobileNavItems = [
     { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Plan', href: '/dashboard/plan', icon: CalendarDays },
+    { name: 'Readiness', href: '/dashboard/readiness', icon: ShieldCheck },
     { name: 'Roadmap', href: '/dashboard/dsa', icon: Code2 },
     { name: 'Core CS', href: '/dashboard/core-cs', icon: Cpu },
     { name: 'Revision', href: '/dashboard/revision', icon: RotateCcw },
@@ -87,7 +90,7 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 flex flex-col font-sans">
-      <CommandPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SearchDialog isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Top Application Header */}
       <header className="h-16 border-b border-slate-200/90 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-4 md:px-6 flex items-center justify-between">
@@ -116,23 +119,24 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
           </Link>
         </div>
 
-        {/* Global Quick Search Trigger (⌘K Shell) */}
+        {/* Global Quick Search Trigger (⌘K / Ctrl+K Shell) */}
         <div className="hidden sm:flex items-center">
+          <GlobalSearch onOpen={() => setSearchOpen(true)} />
+        </div>
+
+        {/* Header Right Actions: Mobile Search, Notifications, Profile & Sign Out */}
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          {/* Mobile Search Button */}
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-3 px-3.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-500 text-xs hover:border-slate-300 hover:text-slate-800 transition-all shadow-subtle"
+            className="sm:hidden p-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center"
+            title="Search"
+            aria-label="Open Command Center Search"
           >
-            <Search className="w-3.5 h-3.5 text-slate-400" />
-            <span>Search problems, topics, companies...</span>
-            <kbd className="px-1.5 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-mono text-slate-500">
-              ⌘K
-            </kbd>
+            <Search className="w-4 h-4" />
           </button>
-        </div>
 
-        {/* Header Right Actions: Notifications, Profile & Sign Out */}
-        <div className="flex items-center gap-2 sm:gap-3">
           {/* Notification Inbox */}
           <NotificationInbox initialNotifications={notifications} />
 
