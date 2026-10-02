@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+
 import {
   Clock,
   Award,
@@ -12,7 +13,8 @@ import {
   Calendar,
   AlertTriangle,
 }
-  from 'lucide-react';
+
+from 'lucide-react';
 import { getSessionUser } from '@/lib/auth';
 import { getAssessmentOverview } from '@/lib/services/assessment';
 import { PageHeader, DifficultyBadge } from '@/components/ui/student-os';

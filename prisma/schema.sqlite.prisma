@@ -46,6 +46,7 @@ model User {
   auditLogs      AdminAuditLog[]
   dossierSnapshots   DossierSnapshot[]
   dossierShareTokens DossierShareToken[]
+  notificationPreference NotificationPreference?
 
   @@index([email])
 }
@@ -860,3 +861,30 @@ model DossierVerificationAudit {
   @@index([dossierSnapshotId])
   @@index([timestamp])
 }
+
+// ----------------------------------------------------------------------------
+// PLACEMENT NOTIFICATION PREFERENCES & REMINDER ENGINE (PHASE 6.16)
+// ----------------------------------------------------------------------------
+
+model NotificationPreference {
+  id                     String    @id @default(cuid())
+  userId                 String    @unique
+  dailyExecutionEnabled  Boolean   @default(true)
+  revisionDueEnabled     Boolean   @default(true)
+  revisionOverdueEnabled Boolean   @default(true)
+  incompleteDailyEnabled Boolean   @default(true)
+  preferredTime          String    @default("09:00")
+  timezone               String    @default("UTC")
+  preferredWeekdays      String    @default("1,2,3,4,5,6,7")
+  maxRemindersPerDay     Int       @default(3)
+  quietHoursStart        String?
+  quietHoursEnd          String?
+  lastReminderState      String?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+

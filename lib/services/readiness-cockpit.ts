@@ -975,7 +975,7 @@ export async function getPlacementReadinessCockpitData(
           `${avgOaScore}% average OA performance`,
           unfinishedAttempt ? '1 active attempt in progress' : 'All attempts submitted',
         ],
-        attemptsCount: evaluatedCount,
+        attemptsCount: assessmentAttempts.length,
         passedCount: passedOaCount,
         avgScorePct: avgOaScore,
         bestScorePct: bestOaScore,

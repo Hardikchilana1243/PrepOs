@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ShieldCheck,
   CalendarDays,
+  Briefcase,
 } from 'lucide-react';
 
 import { SearchDialog } from '@/components/search/search-dialog';
@@ -66,6 +67,7 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
   const preparationNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Readiness Cockpit', href: '/dashboard/readiness', icon: ShieldCheck },
+    { name: 'Interview Prep', href: '/dashboard/interview', icon: Briefcase },
     { name: 'Preparation Plan', href: '/dashboard/plan', icon: CalendarDays },
     { name: 'DSA Roadmap', href: '/dashboard/dsa', icon: Code2 },
     { name: 'Core CS Drills', href: '/dashboard/core-cs', icon: Cpu },
