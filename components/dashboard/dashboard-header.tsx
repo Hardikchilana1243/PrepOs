@@ -15,7 +15,9 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ userName, profile }: DashboardHeaderProps) {
-  const firstName = userName ? userName.trim().split(' ')[0] : 'Candidate';
+  const firstName = userName
+    ? userName.trim().split(' ')[0]
+    : 'Candidate';
 
   const tierLabel = {
     PRODUCT_TIER_1: 'Product Tier 1',
@@ -40,8 +42,12 @@ export function DashboardHeader({ userName, profile }: DashboardHeaderProps) {
               <Calendar className="w-3.5 h-3.5 text-slate-400" />
               <span>{todayFormatted}</span>
             </span>
+
             <span className="text-slate-300">•</span>
-            <span className="text-blue-600 font-semibold">{tierLabel} Track</span>
+
+            <span className="text-blue-600 font-semibold">
+              {tierLabel} Track
+            </span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
@@ -49,7 +55,8 @@ export function DashboardHeader({ userName, profile }: DashboardHeaderProps) {
           </h1>
 
           <p className="text-xs sm:text-sm text-slate-500 max-w-xl">
-            Focus on today&apos;s mission to maintain streak momentum and calibrate your placement readiness.
+            Focus on today&apos;s mission to maintain streak momentum and
+            calibrate your placement readiness.
           </p>
         </div>
 
@@ -63,7 +70,9 @@ export function DashboardHeader({ userName, profile }: DashboardHeaderProps) {
             >
               <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
               <span className="font-mono">{profile.streakDays}</span>
-              <span className="font-normal text-amber-700">Day Streak</span>
+              <span className="font-normal text-amber-700">
+                Day Streak
+              </span>
             </div>
 
             {/* Target Graduation */}
@@ -82,6 +91,15 @@ export function DashboardHeader({ userName, profile }: DashboardHeaderProps) {
             >
               <Code2 className="w-3.5 h-3.5 text-slate-500" />
               <span>{profile.preferredLang}</span>
+            </div>
+
+            {/* Target Degree */}
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-700 shadow-2xs"
+              title={`Target Degree: ${profile.targetDegree}`}
+            >
+              <Target className="w-3.5 h-3.5 text-slate-500" />
+              <span>{profile.targetDegree}</span>
             </div>
           </div>
         )}
