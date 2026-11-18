@@ -110,16 +110,26 @@ export function ReminderCenter({ reminders: initialReminders, onOpenPreferences 
           </div>
         </div>
 
-        {onOpenPreferences && (
-          <button
-            type="button"
-            onClick={onOpenPreferences}
-            className="min-h-[44px] px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1.5 transition-colors"
+        <div className="flex items-center gap-2">
+          <Link
+            href="/dashboard/notifications"
+            className="min-h-[44px] px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1.5 transition-colors"
           >
-            <Sliders className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Preferences</span>
-          </button>
-        )}
+            <span>All Reminders</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </Link>
+
+          {onOpenPreferences && (
+            <button
+              type="button"
+              onClick={onOpenPreferences}
+              className="min-h-[44px] px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1.5 transition-colors"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Preferences</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Reminder List or Empty State */}

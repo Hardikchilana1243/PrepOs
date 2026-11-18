@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "hardik": "next dev",
     "build": "next build",
     "start": "next start",
     "prisma:format": "prisma format --schema=prisma/schema.prisma",

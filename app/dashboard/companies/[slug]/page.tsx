@@ -2,7 +2,6 @@ import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { getCompanyDetailData } from '@/lib/services/companies';
-import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 import { CompanyDetailHeader } from '@/components/companies/company-detail-header';
 import { CompanyReadinessCard } from '@/components/companies/company-readiness-card';
 import { CompanyPatternsCard } from '@/components/companies/company-patterns-card';
@@ -33,9 +32,6 @@ export default async function CompanyDetailPage({ params }: PageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Dynamic Breadcrumbs */}
-      <Breadcrumbs />
-
       {/* 1. Company Identity & Top Metrics Header */}
       <CompanyDetailHeader
         company={{

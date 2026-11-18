@@ -19,6 +19,9 @@ import {
   ShieldCheck,
   CalendarDays,
   Briefcase,
+  Bell,
+  FileText,
+  Lock,
 } from 'lucide-react';
 
 import { SearchDialog } from '@/components/search/search-dialog';
@@ -64,30 +67,36 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Standardized Canonical Navigation Hierarchy (Phase 6.17)
   const preparationNavItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Readiness Cockpit', href: '/dashboard/readiness', icon: ShieldCheck },
-    { name: 'Interview Prep', href: '/dashboard/interview', icon: Briefcase },
-    { name: 'Preparation Plan', href: '/dashboard/plan', icon: CalendarDays },
+    { name: 'Readiness', href: '/dashboard/readiness', icon: ShieldCheck },
+    { name: "Today's Execution", href: '/dashboard/readiness#today-execution', icon: CalendarDays },
     { name: 'DSA Roadmap', href: '/dashboard/dsa', icon: Code2 },
     { name: 'Core CS Drills', href: '/dashboard/core-cs', icon: Cpu },
     { name: 'Spaced Revision', href: '/dashboard/revision', icon: RotateCcw },
     { name: 'Company Hubs', href: '/dashboard/companies', icon: Building2 },
     { name: 'Mock Assessments', href: '/dashboard/assessments', icon: Target },
+    { name: 'Interview Prep', href: '/dashboard/interview', icon: Briefcase },
   ];
 
-  const accountNavItems = [
-    { name: 'Readiness Cockpit', href: '/dashboard/readiness', icon: ShieldCheck },
+  const studentNavItems = [
+    { name: 'Notifications', href: '/dashboard/notifications', icon: Bell },
     { name: 'Readiness Profile', href: '/dashboard/profile', icon: User },
+    { name: 'Placement Dossier', href: '/dashboard/readiness/report', icon: FileText },
+  ];
+
+  const verificationNavItems = [
+    { name: 'Recruiter Verification', href: '/dashboard/readiness#verification', icon: Lock },
   ];
 
   // Mobile Bottom Navigation items (quick-access destinations)
   const mobileNavItems = [
-    { name: 'Home', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Readiness', href: '/dashboard/readiness', icon: ShieldCheck },
+    { name: 'Execution', href: '/dashboard/readiness#today-execution', icon: CalendarDays },
     { name: 'Roadmap', href: '/dashboard/dsa', icon: Code2 },
-    { name: 'Core CS', href: '/dashboard/core-cs', icon: Cpu },
-    { name: 'Revision', href: '/dashboard/revision', icon: RotateCcw },
+    { name: 'Alerts', href: '/dashboard/notifications', icon: Bell },
   ];
 
   return (
@@ -177,15 +186,17 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
         {/* Desktop Sidebar Navigation */}
         <aside className="hidden md:flex w-64 flex-col border-r border-slate-200/90 bg-white p-4 shrink-0">
           <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-2">
-            Preparation Tracks
+            Preparation
           </div>
 
           <nav className="space-y-1 flex-1">
             {preparationNavItems.map((item) => {
               const Icon = item.icon;
-              const isActive =
+              const isAnchor = item.href.includes('#');
+              const isActive = !isAnchor && (
                 pathname === item.href ||
-                (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                (item.href !== '/dashboard' && pathname.startsWith(item.href) && !pathname.startsWith('/dashboard/readiness/report'))
+              );
               return (
                 <Link
                   key={item.name}
@@ -206,13 +217,41 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
               );
             })}
 
-            <div className="pt-4 pb-1">
+            <div className="pt-3 pb-1">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-2">
-                Student & Analytics
+                Student
               </div>
-              {accountNavItems.map((item) => {
+              {studentNavItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-xs transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 min-h-[38px] ${
+                      isActive
+                        ? 'bg-blue-50/80 text-blue-700 font-semibold shadow-xs border border-blue-100/80'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                    }`}
+                  >
+                    <Icon
+                      className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-400'}`}
+                    />
+                    <span className="truncate">{item.name}</span>
+                    {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-blue-500 shrink-0" />}
+                  </Link>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 pb-1">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-2">
+                Verification
+              </div>
+              {verificationNavItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === '/dashboard/readiness' && typeof window !== 'undefined' && window.location.hash === '#verification';
                 return (
                   <Link
                     key={item.name}
@@ -269,17 +308,22 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
               </div>
 
               <nav className="space-y-1 flex-1 overflow-y-auto">
-                {[...preparationNavItems, ...accountNavItems].map((item) => {
+                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-1">
+                  Preparation
+                </div>
+                {preparationNavItems.map((item) => {
                   const Icon = item.icon;
-                  const isActive =
+                  const isAnchor = item.href.includes('#');
+                  const isActive = !isAnchor && (
                     pathname === item.href ||
-                    (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                    (item.href !== '/dashboard' && pathname.startsWith(item.href) && !pathname.startsWith('/dashboard/readiness/report'))
+                  );
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
-                      className={`flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium min-h-[44px] transition-colors ${
+                      className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium min-h-[44px] transition-colors ${
                         isActive
                           ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-100'
                           : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
@@ -290,6 +334,51 @@ export function AppShell({ children, user, notifications = [], onSignOut }: AppS
                     </Link>
                   );
                 })}
+
+                <div className="pt-3 pb-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-1">
+                    Student
+                  </div>
+                  {studentNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium min-h-[44px] transition-colors ${
+                          isActive
+                            ? 'bg-blue-50 text-blue-700 font-semibold border border-blue-100'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span>{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-3 pb-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-3 mb-1">
+                    Verification
+                  </div>
+                  {verificationNavItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium min-h-[44px] text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                      >
+                        <Icon className="w-4 h-4 shrink-0" />
+                        <span>{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </nav>
 
               <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">

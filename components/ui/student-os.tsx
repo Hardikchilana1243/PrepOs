@@ -14,6 +14,8 @@ import {
   X,
   Loader2,
   HelpCircle,
+  Target,
+  Calendar,
 } from 'lucide-react';
 
 // ============================================================================
@@ -455,6 +457,109 @@ export function StatusIndicator({ status, showText = false }: StatusIndicatorPro
         </div>
       );
   }
+}
+
+export type StandardStatus =
+  | 'NOT_STARTED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'DUE_TODAY'
+  | 'OVERDUE'
+  | 'UPCOMING'
+  | 'PASSED'
+  | 'NEEDS_REVIEW'
+  | 'FAILED'
+  | 'TARGET'
+  | 'BOOKMARKED';
+
+export interface StandardStatusBadgeProps {
+  status: StandardStatus | string;
+  size?: 'sm' | 'md';
+  className?: string;
+  showIcon?: boolean;
+}
+
+export function StandardStatusBadge({
+  status,
+  size = 'sm',
+  className = '',
+  showIcon = true,
+}: StandardStatusBadgeProps) {
+  const norm = (status || 'NOT_STARTED').toUpperCase().replace(/[-\s]/g, '_');
+
+  let label = 'Not Started';
+  let variant: BadgeVariant = 'default';
+  let Icon = Circle;
+
+  switch (norm) {
+    case 'NOT_STARTED':
+      label = 'Not Started';
+      variant = 'default';
+      Icon = Circle;
+      break;
+    case 'IN_PROGRESS':
+      label = 'In Progress';
+      variant = 'info';
+      Icon = Clock;
+      break;
+    case 'COMPLETED':
+      label = 'Completed';
+      variant = 'success';
+      Icon = CheckCircle2;
+      break;
+    case 'DUE_TODAY':
+      label = 'Due Today';
+      variant = 'warning';
+      Icon = Calendar;
+      break;
+    case 'OVERDUE':
+      label = 'Overdue';
+      variant = 'danger';
+      Icon = AlertTriangle;
+      break;
+    case 'UPCOMING':
+      label = 'Upcoming';
+      variant = 'default';
+      Icon = Clock;
+      break;
+    case 'PASSED':
+      label = 'Passed';
+      variant = 'success';
+      Icon = CheckCircle2;
+      break;
+    case 'NEEDS_REVIEW':
+      label = 'Needs Review';
+      variant = 'warning';
+      Icon = HelpCircle;
+      break;
+    case 'FAILED':
+      label = 'Failed';
+      variant = 'danger';
+      Icon = AlertCircle;
+      break;
+    case 'TARGET':
+      label = 'Target';
+      variant = 'primary';
+      Icon = Target;
+      break;
+    case 'BOOKMARKED':
+      label = 'Bookmarked';
+      variant = 'primary';
+      Icon = Bookmark;
+      break;
+    default:
+      label = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase().replace(/_/g, ' ');
+      variant = 'default';
+      Icon = Circle;
+      break;
+  }
+
+  return (
+    <Badge variant={variant} size={size} className={`inline-flex items-center gap-1.5 ${className}`}>
+      {showIcon && <Icon className="w-3 h-3 shrink-0" />}
+      <span>{label}</span>
+    </Badge>
+  );
 }
 
 // ============================================================================

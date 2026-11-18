@@ -163,6 +163,18 @@ export function NotificationInbox({ initialNotifications }: NotificationInboxPro
               </div>
             )}
           </div>
+
+          {/* Footer Link to Dedicated Notification Center */}
+          <div className="p-2.5 border-t border-slate-100 bg-slate-50/80 text-center">
+            <Link
+              href="/dashboard/notifications"
+              onClick={() => setIsOpen(false)}
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline flex items-center justify-center gap-1.5 py-1"
+            >
+              <span>Open Notification &amp; Reminder Center</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
       )}
     </div>

@@ -20,6 +20,7 @@ import {
   TrendingUp,
   History,
   Trophy,
+  ArrowRight,
 } from 'lucide-react';
 import { PlacementReadinessCockpit } from '@/lib/services/readiness-cockpit';
 import { FinalReadinessExecutionData } from '@/lib/services/readiness-execution';
@@ -44,12 +45,20 @@ import { ReadinessMilestones } from './readiness-milestones';
 import { ReadinessEmptyState } from './readiness-empty-state';
 import { InterviewReadinessSummaryCard } from './interview-readiness-summary';
 import { InterviewReadinessSummary } from '@/lib/services/interview';
+import { ReminderCenter } from '@/components/notifications/reminder-center';
+import { NotificationErrorBoundary } from '@/components/notifications/notification-error-boundary';
+import { NotificationPreferences as NotificationPreferencesType } from '@/lib/services/notification-preferences';
+import { PlacementNotification, NotificationHistoryItem } from '@/lib/services/notification-engine';
+import { Bell, Sliders } from 'lucide-react';
 
 interface ReadinessViewProps {
   executionData?: FinalReadinessExecutionData;
   dailyExecution?: DailyExecutionWorkspaceData;
   data?: PlacementReadinessCockpit;
   interviewSummary?: InterviewReadinessSummary;
+  notificationPreferences?: NotificationPreferencesType;
+  activeReminders?: PlacementNotification[];
+  notificationHistory?: NotificationHistoryItem[];
   studentMeta?: {
     gradYear?: number;
     targetDegree?: string;
@@ -61,6 +70,9 @@ export function ReadinessView({
   dailyExecution,
   data,
   interviewSummary,
+  notificationPreferences,
+  activeReminders,
+  notificationHistory,
   studentMeta,
 }: ReadinessViewProps) {
   // Graceful fallback if only legacy cockpit data is passed
@@ -148,6 +160,14 @@ export function ReadinessView({
         </a>
 
         <a
+          href="#reminders"
+          className="px-3 py-1.5 rounded-lg bg-indigo-50/70 border border-indigo-200 hover:border-indigo-300 text-indigo-800 shadow-2xs whitespace-nowrap inline-flex items-center gap-1.5 transition-colors font-medium"
+        >
+          <Bell className="w-3.5 h-3.5 text-indigo-600" />
+          <span>Reminders ({activeReminders?.length ?? 0})</span>
+        </a>
+
+        <a
           href="#today-execution"
           className="px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 hover:border-blue-300 text-blue-800 shadow-2xs whitespace-nowrap inline-flex items-center gap-1.5 transition-colors font-bold"
         >
@@ -188,6 +208,14 @@ export function ReadinessView({
         </a>
 
         <a
+          href="#notification-preferences"
+          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200/80 hover:border-slate-300 hover:text-slate-900 shadow-2xs whitespace-nowrap inline-flex items-center gap-1.5 transition-colors"
+        >
+          <Sliders className="w-3.5 h-3.5 text-purple-600" />
+          <span>Preferences</span>
+        </a>
+
+        <a
           href="#activity"
           className="px-3 py-1.5 rounded-lg bg-white border border-slate-200/80 hover:border-slate-300 hover:text-slate-900 shadow-2xs whitespace-nowrap inline-flex items-center gap-1.5 transition-colors"
         >
@@ -218,6 +246,17 @@ export function ReadinessView({
       {/* 3. Critical Gaps Engine */}
       {executionData && <ReadinessGaps gaps={executionData.criticalGaps} />}
 
+      {/* 3b. Placement Reminders Center (Phase 6.16) */}
+      <NotificationErrorBoundary fallbackTitle="Unable to Display Placement Reminders">
+        <ReminderCenter
+          reminders={activeReminders ?? []}
+          onOpenPreferences={() => {
+            const el = document.getElementById('notification-preferences');
+            el?.scrollIntoView({ behavior: 'smooth' });
+          }}
+        />
+      </NotificationErrorBoundary>
+
       {/* 4. Today's Placement Execution Engine (Phase 6.15) */}
       {dailyExecution ? (
         <section id="today-execution" className="space-y-6">
@@ -247,6 +286,31 @@ export function ReadinessView({
 
       {/* 5e. Upcoming Execution Workload (Phase 6.15) */}
       {dailyExecution && <ExecutionUpcoming upcoming={dailyExecution.upcoming} />}
+
+      {/* 5f. Placement Notification Preferences Anchor & Deep-Link (Phase 6.17 Polish) */}
+      <section
+        id="notification-preferences"
+        className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700">
+            <Bell className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Placement Reminders &amp; Notification Preferences</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Manage active recall reminders, daily execution alerts, and quiet hours in the dedicated Notification Center.
+            </p>
+          </div>
+        </div>
+        <Link
+          href="/dashboard/notifications"
+          className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shrink-0 min-h-[44px] inline-flex items-center justify-center gap-1.5 transition-colors"
+        >
+          <span>Notification Center</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </section>
 
       {/* 6. Final Readiness Checklist */}
       {executionData && <FinalReadinessChecklist finalChecklist={executionData.finalChecklist} />}

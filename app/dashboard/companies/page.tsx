@@ -2,7 +2,6 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import { getSessionUser } from '@/lib/auth';
 import { getCompanyCatalogData } from '@/lib/services/companies';
-import { Breadcrumbs } from '@/components/layout/breadcrumbs';
 import { CompaniesHeader } from '@/components/companies/companies-header';
 import { CompanyGrid } from '@/components/companies/company-grid';
 
@@ -38,8 +37,6 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6">
-      <Breadcrumbs />
-
       {/* Companies Catalog Header with Key Metrics */}
       <CompaniesHeader
         totalCompanies={data.totalCompanies}

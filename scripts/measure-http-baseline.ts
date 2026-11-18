@@ -1,5 +1,5 @@
 const SESSION_COOKIE = 'prepos_session=d0c5ba40acd88f9933f8170a63a6a5151c9ea492646ec6294c9b3359e072e4d8';
-const BASE_URL = 'http://localhost:3002';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 interface RouteMetric {
   route: string;
